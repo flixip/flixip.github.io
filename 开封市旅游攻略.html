@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        /* 添加加载动画样式 */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgb(255, 255, 255);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .body{
+            height: 100vh;
+            
+       
+
+        }
+        #show_page{
+           
+            height: 100vh;
+
+        }
+        .control-wheel {
+            position: absolute;
+            top: 100px;
+            left: 200px;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            background: rgb(255, 255, 255);
+            transform-style: preserve-3d;
+            transition: all 0.3s;
+            z-index: 1;
+            border: 1px solid rgba(52, 52, 52, 0.219);
+            
+        }
+        .segment {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            border: 2px solid rgba(103, 103, 103, 0.68);
+            width: 50%;
+            height: 50%;
+            clip-path: polygon(0 0,100% 50%,100% 100%,50% 100%);
+            border-bottom-right-radius: 100% ;
+            transform-origin: top left;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .segment:hover {
+            background:rgba(128, 128, 128, 0.361);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            z-index: 2;
+
+        }
+        .segment.selected {
+            background: rgba(75, 75, 75, 0.619);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            z-index: 2;
+        }
+        .in {
+            position: absolute;
+            transform: rotate(45deg);
+            border-bottom: solid;
+            user-select: none;
+            text-align: center;
+            color: rgb(101, 101, 101);
+            font-size: 90%;
+            border-bottom: 1px solid rgba(16, 16, 16, 0.594);
+        }
+        .in.selected{
+            color: rgb(255, 255, 255);
+        }
+        #ctrbtn {
+            position: absolute;
+            background: linear-gradient(
+                135deg, 
+                rgba(255, 255, 255, 0.9) 0%, 
+                rgba(111, 111, 111, 0.8) 100%
+            );
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 2;
+            box-shadow: 
+                0 0 15px rgba(86, 86, 86, 0.5),
+                inset 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        #container {
+            position: absolute;
+            left: -20px; 
+            top:50%;
+            background: rgba(255, 255, 255, 0);
+            height: 50px;
+            width: 50px;
+            z-index: 1;
+        }
+        #mapcontainer {
+            position: absolute;
+            width: 90%;
+            height: 90%;
+            
+        }
+        #concontainer {
+            position:absolute;
+           width: 70%;
+           height: 100%;
+            margin-left: 31%;
+           background:linear-gradient(to right,rgb(255, 255, 255),grey,rgba(0, 0, 0, 0.773)
+           ); 
+           border-radius: 20px
+        }
+        #imgcontainer{
+            position: absolute;
+            width: 32%;
+            height: 95%;
+            background-image: url('\img\微信图片_20250409002156.jpg');
+            background-size: cover;
+            background-position: center;
+            border: solid 10px rgba(0, 0, 0, 0.366);
+            border-radius: 50px;
+            z-index: 1;
+        }
+        .wechat-message {
+            position: absolute;
+            max-width: 70%;
+            padding: 10px 15px;
+            margin: 10px;
+            border-radius: 5px;
+            background-color: #e5f7ff;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            font-size: 14px;
+            color: #333;
+            word-wrap: break-word;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .wechat-reply {
+            max-width: 60%;
+            max-height: text-size-adjust;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .route-options-container {
+    position: absolute;
+    top: 40%;
+    left: 10%;
+    width: 50%;
+    background: #f0f0f0;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 0;
+}
+
+.route-option-main {
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.route-option {
+    padding: 10px;
+    margin: 5px 0;
+    background: #2ea1fe;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+
+.route-option:hover {
+    background: #7f55fc;
+    transform: scale(1.02);
+}
+
+.planning-msg{
+    top: 80%;
+    left: 10%;
+
+
+}
+    </style>
+</head>
+<body>
+    <div id="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+    <div id="show_page" >
+        <div id="imgcontainer">
+        </div>
+            <div id="container">
+            <div class="control-wheel"></div>
+            <div class="control-wheel"></div>
+        </div>
+        <div id='concontainer'>
+            <div id="mapcontainer">
+        </div> 
+        </div>
+    </div>
+    <script type="text/javascript" src="https://api.map.baidu.com/api?v=1.0&&type=webgl&ak=iPhKAzjwP1tqYfH69shrwsgE7d79El5V"></script>
+<script>
+     window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            document.getElementById('loading-overlay').style.opacity = '0';
+            setTimeout(function() {
+                document.getElementById('loading-overlay').style.display = 'none';
+            }, 500);
+        }, 1000); // 1秒后开始淡出
+    });
+    const imgContainer = document.getElementById('imgcontainer')
+    const container = document.getElementById('container')
+    const sp = document.getElementById('show_page')
+    const whl0 = document.getElementsByClassName('control-wheel')[0]
+    const whl1 = document.getElementsByClassName('control-wheel')[1]
+    whl1.style.zIndex = 0
+    whl0.style.zIndex = 1
+    const whlr0 = whl0.getBoundingClientRect()
+    const conr = container.getBoundingClientRect()
+    tosquarecenter(whl0,whlr0.width,conr.width)
+    tosquarecenter(whl1,whlr0.width,conr.width)
+    let deg = 15
+    // 这里是循环生成6个segment
+    for(let i=0;i<6;i++){
+    l0 = ['万岁山武侠城','开封博物馆','开封府','大相国寺','中国翰园碑林','清明上河园']
+    li = ['过场定位','好像没事了','路线规划','住宿推荐','特色小吃','景区简介']
+    let seg0 = document.createElement('div')
+    let seg1 = document.createElement('div')
+    let txt0 = document.createElement('p')
+    let txt1 = document.createElement('p')
+    txt1.classList.add('in')
+    txt0.classList.add('in')
+    txt1.innerText = `${li[i]}`
+    txt0.innerText = `${l0[i]}`
+    const txtt0 = txt0.getBoundingClientRect()
+    const txtt1 = txt1.getBoundingClientRect()
+    txt1.style.transform = `rotate(-45deg)`  // 初始增加15度偏移
+    // 这里是控制文本的位置
+    tocenter(txt0,35,txtt0.height,txtt0.width)
+    tocenter(txt1,60,txtt1.height,txtt1.width)
+    seg0.classList.add('segment')
+    seg0.style.transform = `rotate(${i*60 + 15}deg)`  // 初始增加15度偏移
+    seg0.appendChild(txt0)
+    seg1.classList.add('segment')
+    seg1.style.transform = `rotate(${i*60 + 15}deg)`  // 初始增加15度偏移
+    seg1.appendChild(txt1)
+    // 添加通用的拖动旋转方法
+    function setupDrag(wheel, scale) {
+        let isDragging = false;
+        let startAngle = 0;
+        let startDeg = deg;
+        let lastIndex = null; // 记录上次的索引
+        
+
+        wheel.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            const rect = wheel.getBoundingClientRect();
+            const centerX = rect.left + rect.width/2;
+            const centerY = rect.top + rect.height/2;
+            startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180 / Math.PI;
+            startDeg = deg;
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if(!isDragging) return;
+            const rect = wheel.getBoundingClientRect();
+            const centerX = rect.left + rect.width/2;
+            const centerY = rect.top + rect.height/2;
+            const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180 / Math.PI;
+            let newDeg = startDeg + (angle - startAngle);
+            
+            // 修改卡扣阈值为60度
+            const snapThreshold = 30; // 60度的一半阈值
+            const remainder = newDeg % 60;
+            let snappedDeg = newDeg;
+            
+            if(remainder < snapThreshold) {
+                snappedDeg = newDeg - remainder;
+            } else if(remainder > (60 - snapThreshold)) {
+                snappedDeg = newDeg + (60 - remainder);
+            }
+            
+            if(Math.abs(snappedDeg - newDeg) < 60) {
+                deg = snappedDeg;
+                wheel.style.transition = 'transform 0.2s ease-out';
+            } else {
+                wheel.style.transition = 'none';
+                deg = newDeg;
+            }
+            
+            wheel.style.transform = `rotate(${deg}deg) scale(${wheel.classList.contains('closed') ? 0.1 : scale})`;
+            
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            const remainder = deg % 60;
+            if(remainder !== 0) {
+                deg = Math.round(deg/60)*60;
+                wheel.style.transition = 'transform 0.3s ease-out';
+                wheel.style.transform = `rotate(${deg}deg) scale(${wheel.classList.contains('closed') ? 0.1 : scale})`;
+            }
+        });
+    }
+
+    // 修改循环生成segment的部分
+        // ... 创建segment和文本的代码保持不变 ...
+        
+        // 为两个转盘添加拖动事件
+        setupDrag(whl0, 1);   // whl0缩放比例为1
+        setupDrag(whl1, 1.5); // whl1缩放比例为1.5
+        
+        whl0.appendChild(seg0);
+        whl1.appendChild(seg1);
+
+
+}
+    
+    const strbtn = document.createElement('div')
+    strbtn.id = 'ctrbtn'
+    // 这里是调整控制按钮大小
+    tosquarecenter(strbtn,60,conr.width)
+    container.appendChild(strbtn)
+    
+    // 将收起/展开功能绑定到strbtn
+    // 初始化两个转盘状态
+    whl0.classList.add('closed')
+    whl0.style.transform = 'scale(0.1)'
+    whl1.classList.add('closed')
+    whl1.style.transform = 'scale(0.1)'
+    let clickCount = 0  // 记录点击次数
+    // 这是控制展开/收起的函数
+    strbtn.addEventListener('click',()=>{
+        clickCount++
+        if(clickCount === 1) {
+            // 第一次点击展开whl0
+            whl0.classList.remove('closed')
+            whl0.style.transform = 'scale(1)'
+        } else if(clickCount === 2) {
+            // 第二次点击展开whl1
+            whl1.classList.remove('closed')
+            whl1.style.transform = 'scale(1.5)'
+        } else {
+            // 第三次点击恢复初始状态
+            whl0.classList.add('closed')
+            whl0.style.transform = 'scale(0.1)'
+            whl1.classList.add('closed')
+            whl1.style.transform = 'scale(0.1)'
+            clickCount = 0
+        }
+    }) 
+    // 添加拖动事件
+    // 修改显示微信消息的函数
+        // 修改显示微信消息的函数
+        // 在脚本开头添加全局变量
+
+        // 初始化全局变量
+        let selectedSpot = null;  // 记录第一个转盘选中的景区
+        let selectedOption = null; // 记录第二个转盘选中的选项
+        
+        // 修改显示微信消息的函数，因为seg的切换和选中写在这里，所以也承担打扫工作
+        // 每次添加新功能都要在这里面加一个处理方法处理残留的消息，或者后面做好了再写一个简单的
+        // 连接了checkAndReply函数, 这个是先在imgcon里面显示选择了哪两个选项
+        function showWechatMessage(text, isFirstWheel) {
+            const imgContainer = document.getElementById('imgcontainer');
+            // 只清除当前转盘对应的旧消息
+            const oldMessages = imgContainer.querySelectorAll(`.wechat-message.${isFirstWheel ? 'wheel0' : 'wheel1'}`);
+            oldMessages.forEach(msg => msg.remove());
+            
+            // 清除规划提示消息
+            const planningMsg = imgContainer.querySelector('.planning-msg');
+            if(planningMsg) planningMsg.remove();
+            
+            // 清除路线规划选项框
+            // 在showWechatMessage函数中添加清除选项框的代码
+            const oldOptionsContainer = imgContainer.querySelector('.route-options-container');
+            if(oldOptionsContainer) oldOptionsContainer.remove();
+            
+            // 更新全局变量
+            if(isFirstWheel) {
+                selectedSpot = text;
+            } else {
+                selectedOption = text;
+            }
+            
+            // 创建新消息
+            const message = document.createElement('p');
+            message.className = `wechat-message ${isFirstWheel ? 'wheel0' : 'wheel1'}`;
+            message.textContent = text;
+            
+            // 根据转盘类型设置不同位置区域
+            const right = 10;
+            const top = isFirstWheel? 10 : 20;
+            message.style.right = `${right}%`;
+            message.style.top = `${top}%`;
+            
+            // 为不同转盘消息设置不同背景色
+            message.style.backgroundColor = isFirstWheel ? '#e5f7ff' : '#f0ffe5';
+            
+            imgContainer.appendChild(message);
+        
+            // 检查是否需要回复
+            checkAndReply();
+        }
+        
+        // 添加检查并回复的函数，也就是监测全局变量selectedSpot和selectedOption的变化进行回应，也是这个应用的核心函数了
+        function checkAndReply() {
+            const imgContainer = document.getElementById('imgcontainer');
+            
+            // 清除所有旧的回复消息
+            const oldReplies = imgContainer.querySelectorAll('.wechat-reply');
+            oldReplies.forEach(reply => reply.remove());
+               
+            
+            // 路线规划分支
+            if(selectedOption === '路线规划' && selectedSpot) {
+                // 创建主容器
+                const optionsContainer = document.createElement('div');
+                optionsContainer.className = 'route-options-container';
+                
+                // 主询问消息
+                const mainReply = document.createElement('div');
+                mainReply.className = 'route-option-main';
+                mainReply.innerHTML = `<strong>请问您想通过什么方式出行？</strong>`;
+                optionsContainer.appendChild(mainReply);
+                
+                // 出行选项
+                const options = ['公交', '步行', '驾车'];
+                options.forEach((option, index) => {
+                    const optionEl = document.createElement('div');
+                    optionEl.className = 'route-option';
+                    optionEl.textContent = option;
+                    
+                    optionEl.addEventListener('click', () => {
+                        // 清除旧的规划提示消息
+                        const oldPlanningMsg = document.querySelector('.planning-msg');
+                        if(oldPlanningMsg) oldPlanningMsg.remove();
+                        
+                        // 创建新的规划提示消息
+                        const planningMsg = document.createElement('div');
+                        planningMsg.className = 'wechat-message wechat-reply planning-msg';
+                        planningMsg.style.backgroundColor = '#f0f0f0';
+                        planningMsg.innerHTML = `<div style="padding: 5px;">正在规划${selectedSpot}的${option}路线...</div>`;
+                        document.getElementById('imgcontainer').appendChild(planningMsg);
+                        
+                        planRoute(selectedSpot, option + '路线');
+                    });
+                    
+                    optionsContainer.appendChild(optionEl);
+                });
+                
+                // 清除旧内容
+            
+            const oldContainer = imgContainer.querySelector('.route-options-container');
+            if(oldContainer) oldContainer.remove();
+            
+            imgContainer.appendChild(optionsContainer);
+            }
+            // 景区简介分支
+            else if(selectedSpot && selectedOption === '景区简介') {
+                // 创建景区简介消息
+                const reply = document.createElement('div');
+                reply.className = 'wechat-message wechat-reply';
+                reply.style.left = '10%';
+                reply.style.right = 'auto';
+                reply.style.top = '40%';
+                reply.style.backgroundColor = '#f0f0f0';
+                
+                const introText = generateIntroduction(selectedSpot);
+                
+                reply.innerHTML = `
+                    <div style="max-height: 150px; overflow-y: auto; padding: 5px;">
+                        <strong>${selectedSpot}介绍：</strong><br>
+                        ${introText}
+                    </div>
+                `;
+                
+                imgContainer.appendChild(reply);
+            }
+            // 过场动画分支
+            else if(selectedOption === '过场定位' && selectedSpot) {
+                playRouteAnimation(selectedSpot);
+            }
+            // 好像没事了分支
+           else if(selectedOption === '好像没事了') {
+        const reply = document.createElement('div');
+        reply.className = 'wechat-message wechat-reply';
+        reply.style.left = '10%';
+        reply.style.right = 'auto';
+        reply.style.top = '40%';
+        reply.style.backgroundColor = '#f0f0f0';
+        reply.innerHTML = `<div style="padding: 5px;">
+            <strong>欢迎下次光临~</strong>
+        </div>`;
+        imgContainer.appendChild(reply);
+    }
+            // 在checkAndReply函数中添加住宿推荐分支
+            else if(selectedSpot && selectedOption === '住宿推荐') {
+            // 创建准备消息
+            const preparingMsg = document.createElement('div');
+            preparingMsg.className = 'wechat-message wechat-reply';
+            preparingMsg.style.left = '10%';
+            preparingMsg.style.right = 'auto';
+            preparingMsg.style.top = '40%';
+            preparingMsg.style.backgroundColor = '#f0f0f0';
+            preparingMsg.innerHTML = `<div style="padding: 5px;">
+                <strong>正在为你标记${selectedSpot}附近推荐的住宿选择...</strong>
+            </div>`;
+            imgContainer.appendChild(preparingMsg);
+
+            // 清除地图上已有的标记
+            map.clearOverlays();
+            
+            // 标记景区位置
+            const spotPoint = new BMapGL.Point(coordinate[selectedSpot][0], coordinate[selectedSpot][1]);
+            addMarker(spotPoint, selectedSpot);
+
+            // 延迟显示结果，模拟加载过程
+            setTimeout(() => {
+                // 更新消息内容
+                preparingMsg.innerHTML = `<div style="max-height: 200px; overflow-y: auto; padding: 5px;">
+                    <strong>推荐完毕，以下是${selectedSpot}附近的住宿：</strong><br><br>
+                    ${generateHotelRecommendations(selectedSpot)}
+                </div>`;
+
+                // 标记酒店位置
+                if (holtel[selectedSpot]?.住宿推荐) {
+                    holtel[selectedSpot].住宿推荐.forEach(hotel => {
+                        const [lng, lat] = hotel.坐标.split(',').map(Number);
+                        const point = new BMapGL.Point(lng, lat);
+                        addMarker(point, hotel.名称);
+                    });
+                }
+            }, 1500);
+        }
+            // 在checkAndReply函数中添加特色小吃分支
+            else if(selectedOption === '特色小吃') {
+            // 创建主容器
+            const optionsContainer = document.createElement('div');
+            optionsContainer.className = 'route-options-container';
+
+            // 必吃小吃选项
+            const mustEatOption = document.createElement('div');
+            mustEatOption.className = 'route-option';
+            mustEatOption.textContent = '开封必吃小吃榜单';
+            mustEatOption.addEventListener('click', () => {
+                showFoodRecommendations('必吃小吃');
+            });
+            optionsContainer.appendChild(mustEatOption);
+
+            // 如果选择了景区，添加景区附近美食选项
+            if(selectedSpot) {
+                const nearbyOption = document.createElement('div');
+                nearbyOption.className = 'route-option';
+                nearbyOption.textContent = `${selectedSpot}附近美食榜单`;
+                nearbyOption.addEventListener('click', function(){
+                    showFoodRecommendations('景区周边美食', selectedSpot);
+                });
+                optionsContainer.appendChild(nearbyOption);
+            }
+
+            // 清除旧内容并添加新选项
+            const oldContainer = imgContainer.querySelector('.route-options-container');
+            if(oldContainer) oldContainer.remove();
+            imgContainer.appendChild(optionsContainer);
+        }
+        }           
+            
+        // 添加路线规划函数
+        function planRoute(spotName, routeType) {
+        
+            // 先获取当前位置
+            const geolocation = new BMapGL.Geolocation();
+            geolocation.getCurrentPosition(function(r) {
+                if(this.getStatus() == BMAP_STATUS_SUCCESS) {
+                    const startPoint = r.point;
+                    const endPoint = new BMapGL.Point(coordinate[spotName][0], coordinate[spotName][1]);
+                    
+                    // 清除地图上已有的路线
+                    map.clearOverlays();
+                    
+                    // 根据不同类型规划路线
+                    switch(routeType) {
+                        case '驾车路线':
+                            const riding = new BMapGL.RidingRoute(map, {
+                                renderOptions: {map: map, autoViewport: true}
+                            });
+                            riding.search(startPoint, endPoint);
+                            break;
+                            
+                        case '步行路线':
+                            const walking = new BMapGL.WalkingRoute(map, {
+                                renderOptions: {map: map, autoViewport: true}
+                            });
+                            walking.search(startPoint, endPoint);
+                            break;
+                            
+                        // 在公交路线case部分修改
+                        case '公交路线':
+                            const transit = new BMapGL.TransitRoute(map, {
+                                renderOptions: {map: map},
+                                onSearchComplete: function(results) {
+                                    if (transit.getStatus() == BMAP_STATUS_SUCCESS) {
+                                        const plan = results.getPlan(0);
+                                        const info = `公交路线：总时长${plan.getDuration(true)}，距离${plan.getDistance(true)}`;
+                                        alert(info); // 改为使用alert显示
+                                    }
+                                }
+                            });
+                            transit.search(startPoint, endPoint);
+                            break;
+                    }
+                    
+                    // 添加起点和终点标记
+                    addMarker(startPoint, '我的位置');
+                    addMarker(endPoint, spotName);
+                    const planningMsg = document.querySelector('.planning-msg');
+                    if(planningMsg) {
+                planningMsg.innerHTML = `<div style="padding: 5px;">
+                    已帮您规划完毕到${spotName}的${routeType}！
+                </div>`;}
+                    
+
+                } else {
+                    if(planningMsg) {
+                planningMsg.innerHTML = `<div style="padding: 5px;color:red;">
+                    规划失败，请重试
+                </div>`;
+            }
+
+                }
+            });
+        }
+        
+        // 添加标记函数
+        function addMarker(point, title) {
+            const marker = new BMapGL.Marker(point);
+            map.addOverlay(marker);
+            const label = new BMapGL.Label(title, {
+                position: point,
+                offset: new BMapGL.Size(20, -10)
+            });
+            map.addOverlay(label);
+        }
+        
+        // 显示路线信息函数，这是针对公交路线的
+        function showRouteInfo(info) {
+            const routeInfo = document.createElement('div');
+            routeInfo.className = 'wechat-message wechat-reply';
+            routeInfo.style.left = '10%';
+            routeInfo.style.right = 'auto';
+            routeInfo.style.top = '40%';
+            routeInfo.style.backgroundColor = '#f0f0f0';
+            routeInfo.innerHTML = `<div style="padding: 5px;">${info}</div>`;
+            
+            document.getElementById('imgcontainer').appendChild(routeInfo);
+        }
+        
+        // 生成景区介绍内容
+        function generateIntroduction(spotName) {
+           
+            return introductions[spotName] || '暂无该景区的详细介绍。';
+        }
+        // 添加生成酒店推荐内容的函数
+        function generateHotelRecommendations(spotName) {
+        if (!holtel[spotName]?.住宿推荐) return '暂无该景区附近的住宿推荐';
+        
+        let html = '';
+        holtel[spotName].住宿推荐.forEach(hotel => {
+            const rating = parseFloat(hotel.评分.split('分')[0]);
+            const stars = '★'.repeat(Math.floor(rating)) + '☆'.repeat(5 - Math.floor(rating));
+            
+            html += `
+                <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
+                    <strong>${hotel.名称}</strong><br>
+                    <span style="color: #666;">${hotel.类型}</span><br>
+                    评分: <span style="color: #f39c12;">${stars} ${hotel.评分}</span><br>
+                    特点: ${hotel.亮点}<br>
+                </div>
+            `;
+        });
+        
+        return html;
+    }
+        // 添加生成特色小吃推荐内容的函数
+        function showFoodRecommendations(type, spotName = null) {
+            //先隐藏选项卡
+            const optionsContainer = document.querySelector('.route-options-container');
+            if(optionsContainer) optionsContainer.style.display = 'none';
+        
+            const reply = document.createElement('div');
+        reply.className = 'wechat-message wechat-reply';
+        reply.style.left = '10%';
+        reply.style.right = 'auto';
+        reply.style.top = '40%';
+        reply.style.backgroundColor = '#f0f0f0';
+        reply.style.maxHeight = '200px';
+        reply.style.overflowY = 'auto';
+        reply.style.position = 'relative'; // 添加相对定位
+
+        // 添加关闭按钮
+        const closeBtn = document.createElement('div');
+        closeBtn.innerText = '×';
+        closeBtn.style.position = 'absolute';
+        closeBtn.style.top = '42%';
+        closeBtn.style.left = '15px';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.fontSize = '20px';
+        closeBtn.style.backgroundColor = '#f0f0f0';
+        closeBtn.style.color = 'black';
+        closeBtn.style.padding = '5px';
+        closeBtn.style.borderRadius = '5px';
+        closeBtn.addEventListener('click', function(e) {
+            reply.remove();
+            closeBtn.remove();
+            // 重新显示选项容器
+            if(optionsContainer) optionsContainer.style.display = 'block';
+        });
+        imgContainer.appendChild(closeBtn);
+
+        let html = '';
+        if(type === '必吃小吃') {
+            html += `<div style="padding: 5px;"><strong>开封必吃小吃榜单：</strong><br><br>`;
+            foreat["开封特色小吃及景区周边美食"].必吃小吃.forEach(food => {
+                html += `<div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
+                    <strong>${food.名称}</strong><br>
+                    ${food.历史渊源 || food.特色 || food.制作工艺 || food.风味}<br>
+                    <span style="color: #666;">推荐店铺：</span><br>`;
+                
+                food.代表店铺?.forEach(shop => {
+                    html += `- ${shop.名称} (${shop.价格})<br>`;
+                });
+                
+                html += `</div>`;
+            });
+        } else if(type === '景区周边美食' && spotName) {
+            html += `<div style="padding: 5px;"><strong>${spotName}附近美食榜单：</strong><br><br>`;
+            
+            // 景区内美食
+            const spotFoods = foreat["开封特色小吃及景区周边美食"].景区周边美食[spotName];
+            if(spotFoods?.景区内美食) {
+                html += `<strong>景区内美食：</strong><br>`;
+                spotFoods.景区内美食.forEach(food => {
+                    html += `- ${food.名称} (${food.价格})<br>`;
+                });
+            }
+            
+            // 周边美食
+            if(spotFoods?.周边餐厅 || spotFoods?.夜市推荐) {
+                html += `<br><strong>周边推荐：</strong><br>`;
+                if(spotFoods.周边餐厅) {
+                    spotFoods.周边餐厅.forEach(restaurant => {
+                        html += `- ${restaurant.名称} (${restaurant.推荐})<br>`;
+                    });
+                }
+                if(spotFoods.夜市推荐) {
+                    spotFoods.夜市推荐.forEach(nightMarket => {
+                        html += `- ${nightMarket.名称} (${nightMarket.推荐})<br>`;
+                    });
+                }
+            }
+        }
+        
+        html += `</div>`;
+        reply.innerHTML += html;
+        
+        // 清除旧内容并添加新推荐
+        const oldReplies = imgContainer.querySelectorAll('.wechat-reply');
+        oldReplies.forEach(r => r.remove());
+        imgContainer.appendChild(reply);
+}
+    
+    // 修改segment点击事件处理
+    const segs0 = whl0.querySelectorAll('.segment');
+    const segs1 = whl1.querySelectorAll('.segment');
+    
+    // 针对内层轮盘的segment点击事件处理，对应修改样式后连接到showWechatMessage函数
+    segs0.forEach((seg) => {
+        seg.addEventListener('click', (e) => {
+            e.preventDefault();
+            // 取消whl0中其他segment的选择
+            segs0.forEach((s) => {
+                if(s !== seg) {
+                    s.classList.remove('selected');
+                    s.querySelector('.in').classList.remove('selected');
+                }
+            });
+            // 切换当前segment的选择状态
+            seg.classList.toggle('selected');
+            seg.querySelector('.in').classList.toggle('selected');
+            
+            // 添加微信消息显示
+            if(seg.classList.contains('selected')) {
+                showWechatMessage(seg.querySelector('.in').innerText, true); // 添加true表示第一个转盘
+               
+            }
+        });
+    });
+
+    // 针对外层轮盘的segment点击事件处理,与上面的处理方法一致
+    segs1.forEach((seg) => {
+        seg.addEventListener('click', (e) => {
+            e.preventDefault();
+            // 取消whl1中其他segment的选择
+            segs1.forEach((s) => {
+                if(s !== seg) {
+                    s.classList.remove('selected');
+                    s.querySelector('.in').classList.remove('selected');
+                }
+            });
+            // 切换当前segment的选择状态
+            seg.classList.toggle('selected');
+            seg.querySelector('.in').classList.toggle('selected');
+            
+            // 添加微信消息显示
+            if(seg.classList.contains('selected')) {
+                showWechatMessage(seg.querySelector('.in').innerText, false);
+                
+            }
+        });
+    });
+
+
+    // 修改3D动画播放函数
+    function playRouteAnimation(spotName) {
+        // 显示准备消息
+        const preparingMsg = document.createElement('div');
+        preparingMsg.className = 'wechat-message wechat-reply';
+        preparingMsg.style.left = '10%';
+        preparingMsg.style.right = 'auto';
+        preparingMsg.style.top = '40%';
+        preparingMsg.style.backgroundColor = '#f0f0f0';
+        preparingMsg.innerHTML = `<div style="padding: 5px;">
+            <strong>正在准备过场动画...</strong>
+        </div>`;
+        document.getElementById('imgcontainer').appendChild(preparingMsg);
+    
+        // 先获取当前位置
+        const geolocation = new BMapGL.Geolocation();
+        geolocation.getCurrentPosition(function(r) {
+            if(this.getStatus() == BMAP_STATUS_SUCCESS) {
+                // 更新准备消息为"准备完成"
+                preparingMsg.innerHTML = `<div style="padding: 5px;">
+                    <strong>准备完成，开始播放过场动画</strong>
+                </div>`;
+                
+                const startPoint = r.point;
+                const endPoint = new BMapGL.Point(coordinate[spotName][0], coordinate[spotName][1]);
+                
+                // 清除地图上已有的路线
+                map.clearOverlays();
+                
+                // 定义关键帧
+                const keyFrames = [
+                    {
+                        center: startPoint,
+                        zoom: 17,
+                        tilt: 60,
+                        heading: 0,
+                        percentage: 0
+                    },
+                    {
+                        center: new BMapGL.Point(
+                            (startPoint.lng + endPoint.lng) / 2,
+                            (startPoint.lat + endPoint.lat) / 2
+                        ),
+                        zoom: 15,
+                        tilt: 45,
+                        heading: 90,
+                        percentage: 0.5
+                    },
+                    {
+                        center: endPoint,
+                        zoom: 17,
+                        tilt: 60,
+                        heading: 180,
+                        percentage: 1
+                    }
+                ];
+                
+                // 设置动画属性
+                const opts = {
+                    duration: 5000,
+                    delay: 1000,
+                    interation: 1
+                };
+                
+                // 创建并播放动画
+                const animation = new BMapGL.ViewAnimation(keyFrames, opts);
+                
+                // 监听动画开始事件
+                animation.addEventListener('animationstart', function() {
+                    setTimeout(() => {
+                        preparingMsg.remove(); // 动画开始后移除准备消息
+                    }, 1000);
+                });
+                
+                map.startViewAnimation(animation);
+                
+                // 添加起点和终点标记
+                addMarker(startPoint, '我的位置');
+                addMarker(endPoint, spotName);
+                
+            } else {
+                alert('定位失败，无法播放动画');
+            }
+        });
+    }
+
+    // 这是三个几何位置函数
+function tocenter(dom,x,h,w){
+    dom.style.left = `${x}px`
+    dom.style.top = `${x + w - h}px`
+
+}
+function tosquarecenter(dom,a1,a2){
+    t = `${(a2-a1)/2}px`
+    dom.style.height = `${a1}px`
+    dom.style.width = `${a1}px`
+    dom.style.left = t
+    dom.style.top = t
+}
+function centertocenter(dom1,dom2){
+    w1 = dom1.getBoundingClientRect().width
+    w2 = dom2.getBoundingClientRect().width
+    h1 = dom1.getBoundingClientRect().height
+    h2 = dom2.getBoundingClientRect().height
+    dom2.style.left = `${(w1-w2)/2}px`
+    dom2.style.top = `${(h1-h2)/2}px`
+
+}
+const introductions = {
+                '万岁山武侠城': '万岁山武侠城是以武侠文化为主题的大型旅游景区，占地500亩。景区内有大量仿古建筑和武侠场景，每天都有精彩的武侠表演和实景演出，让游客仿佛身处于古代武侠世界。',
+                '清明上河园': '清明上河园是以北宋画家张择端的《清明上河图》为蓝本建造的大型宋代文化主题公园。园区占地600亩，完美再现了北宋都城汴京的繁华景象，是了解宋代文化的绝佳去处。',
+                '开封府': '开封府是北宋时期的最高行政机构所在地，现为展示宋代司法文化的主题景区。景区内有大量历史文物和复原场景，著名的"包公断案"表演每天都会在此上演。',
+                '大相国寺': '大相国寺始建于北齐，是中国著名的佛教寺院之一。寺内保存有大量珍贵文物，包括宋代铜钟和明代佛像等。这里不仅是佛教圣地，也是了解中国古代佛教文化的重要窗口。',
+                '中国翰园碑林': '中国翰园碑林是中国最大的碑刻艺术园林，收藏了从汉代到清代的各类碑刻3000余通。这里不仅是书法爱好者的天堂，也是了解中国碑刻艺术发展史的重要场所。',
+                '开封博物馆': '开封博物馆是河南省最大的综合性博物馆之一，馆藏文物8万余件。博物馆通过丰富的展陈，系统展示了开封从新石器时代到近代的辉煌历史和文化。'
+            };
+const coordinate = {
+    '河南大学金明校区':[114.31902671079902,34.82298024250347],
+    '清明上河园':[114.346893,34.814934] ,
+    '开封府':[114.353355,34.795925],
+    '大相国寺':[114.36105348493058, 34.79799494964165],
+    '中国翰园碑林':[114.346893,34.814934],
+    '开封博物馆':[114.26022075753824, 34.809780731256055],
+    '万岁山武侠城':[114.356144,34.826399],
+}   
+const holtel = {
+  "万岁山武侠城": {
+    "景区特色": "以武侠文化为主题的大型旅游景区，占地500亩。景区内有大量仿古建筑和武侠场景，每天都有精彩的武侠表演和实景演出，让游客仿佛身处于古代武侠世界。",
+    "住宿推荐": [
+      {
+        "名称": "莫蓝酒店（开封清明上河园店）",
+        "类型": "舒适型酒店",
+        "评分": "4.8分（携程4.8/5.0，高于74%同城酒店）",
+        "亮点": "距离万岁山仅1.5公里，提供免费景区接送服务，客房配备蓝牙音乐系统和小零食，部分房型可步行至景区。用户评价“服务贴心，退房后仍提供休息区”。",
+        "坐标": "114.330906,34.80182"  // 柒柒酒店(开封清明上河园店)坐标（推测临近）
+      },
+      {
+        "名称": "开封一束小院（万岁山武侠城店）",
+        "类型": "智能自助民宿",
+        "评分": "新开业（2025年）",
+        "亮点": "密码入住，24小时管家服务，步行10分钟可达景区，适合追求私密与便捷的游客。",
+        "坐标": "114.348271,34.834563"  // 开封市龙亭区相逢居住宿旅店坐标（推测临近）
+      },
+      {
+        "名称": "陌上轻居酒店（开封清明上河园店）",
+        "类型": "舒适型酒店",
+        "评分": "4.6分",
+        "亮点": "位于景区热卖榜前列，早餐丰盛（含开封小笼包），停车便利，适合家庭出行。",
+        "坐标": "114.330906,34.80182"  // 柒柒酒店(开封清明上河园店)坐标（推测临近）
+      }
+    ]
+  },
+  "清明上河园": {
+    "景区特色": "以北宋画家张择端的《清明上河图》为蓝本建造的大型宋代文化主题公园。园区占地600亩，完美再现了北宋都城汴京的繁华景象，是了解宋代文化的绝佳去处。",
+    "住宿推荐": [
+      {
+        "名称": "开封墨里庭院式民宿（清明上河园鼓楼广场店）",
+        "类型": "庭院式民宿",
+        "评分": "4.8分（1476条点评）",
+        "亮点": "诧寂风设计，提供高尔夫观光车接送，步行10分钟至景区，含早餐（开封特色）。",
+        "坐标": "114.35961,34.800656"  // 汉庭酒店(开封鼓楼店)坐标
+      },
+      {
+        "名称": "柒柒酒店（开封清明上河园店）",
+        "类型": "舒适型酒店",
+        "评分": "4.5分（1717条点评）",
+        "亮点": "性价比高，周边餐饮丰富，停车方便，适合预算有限的游客。",
+        "坐标": "114.330906,34.80182"
+      },
+      {
+        "名称": "桔子酒店（开封清明上河园店）",
+        "类型": "中端商务酒店",
+        "评分": "4.8分（新开业）",
+        "亮点": "智能客控系统，房间宽敞，早餐种类多，距离景区车程15分钟。",
+        "坐标": "114.326597,34.803108"  // 开封铂朗酒店(小宋城武夷夜市店)坐标（推测临近）
+      }
+    ]
+  },
+  "开封府": {
+    "景区特色": "北宋时期的最高行政机构所在地，现为展示宋代司法文化的主题景区。景区内有大量历史文物和复原场景，著名的“包公断案”表演每天都会在此上演。",
+    "住宿推荐": [
+      {
+        "名称": "格林豪泰智选酒店（开封府店）",
+        "类型": "连锁经济型酒店",
+        "评分": "4.3分",
+        "亮点": "步行10分钟至开封府，提供免费停车场，适合短住。",
+        "坐标": "114.360922,34.800585"  // 格林豪泰快捷酒店(开封鼓楼店)坐标（推测临近）
+      },
+      {
+        "名称": "维也纳酒店（开封府店）",
+        "类型": "中端商务酒店",
+        "评分": "4.5分",
+        "亮点": "设施较新，靠近鼓楼夜市，含早餐，适合家庭入住。",
+        "坐标": "114.359846,34.800243"  // 鼓迹艺术酒店(开封鼓楼广场店)坐标（推测临近）
+      },
+      {
+        "名称": "慕名而来民宿（开封火车站店）",
+        "类型": "经济型民宿",
+        "评分": "4.6分",
+        "亮点": "步行15分钟至开封府，周边小吃丰富，价格实惠。",
+        "坐标": "114.344642,34.801435"  // 建伟旅馆(丁角五街店)坐标
+      }
+    ]
+  },
+  "大相国寺": {
+    "景区特色": "始建于北齐，是中国著名的佛教寺院之一。寺内保存有大量珍贵文物，包括宋代铜钟和明代佛像等。这里不仅是佛教圣地，也是了解中国古代佛教文化的重要窗口。",
+    "住宿推荐": [
+      {
+        "名称": "开封大相国寺禅心酒店",
+        "类型": "禅意主题酒店",
+        "评分": "4.7分（携程推荐）",
+        "亮点": "紧邻大相国寺，提供禅修体验，客房设计简约雅致，适合追求文化深度的游客。",
+        "坐标": "114.372197,34.793709"  // 易安快捷酒店(大相国寺店)坐标
+      },
+      {
+        "名称": "如家酒店（鼓楼广场店）",
+        "类型": "连锁经济型酒店",
+        "评分": "4.6分",
+        "亮点": "步行10分钟至大相国寺，人均150元/晚，性价比高。",
+        "坐标": "114.35961,34.800656"  // 汉庭酒店(开封鼓楼店)坐标
+      },
+      {
+        "名称": "开封俗尘禅心客栈",
+        "类型": "禅意民宿",
+        "评分": "3.9分",
+        "亮点": "四合院改造，环境安静，提供汉服体验，适合预算有限的游客。",
+        "坐标": "114.361632,34.808444"  // 云锦酒店坐标（推测临近）
+      }
+    ]
+  },
+  "中国翰园碑林": {
+    "景区特色": "中国最大的碑刻艺术园林，收藏了从汉代到清代的各类碑刻3000余通。这里不仅是书法爱好者的天堂，也是了解中国碑刻艺术发展史的重要场所。",
+    "住宿推荐": [
+      {
+        "名称": "开封颐尚民宿",
+        "类型": "经济型民宿",
+        "评分": "用户评价“干净舒适”",
+        "亮点": "距离翰园碑林3公里，提供免费停车，家庭房适合亲子游。",
+        "坐标": "114.348971,34.833658"  // 开封市龙亭区忆轩住宿旅店坐标
+      },
+      {
+        "名称": "柒·栖庭院式民宿",
+        "类型": "中式庭院民宿",
+        "评分": "4.0分",
+        "亮点": "步行15分钟至翰园碑林，周边有古城墙景观，适合拍照。",
+        "坐标": "114.348938,34.832183"  // 优租客坐标
+      },
+      {
+        "名称": "开封清明上河园亚朵酒店",
+        "类型": "中端商务酒店",
+        "评分": "4.7分",
+        "亮点": "步行1.3公里至翰园碑林，提供洗衣服务，适合商务旅客。",
+        "坐标": "114.341767,34.817275"  // 开封国庆旅馆(清明上河园店)坐标
+      }
+    ]
+  },
+  "开封博物馆": {
+    "景区特色": "展示开封八朝历史，馆藏丰富，适合文化研学。",
+    "住宿推荐": [
+      {
+        "名称": "开封北站博物馆亚朵酒店",
+        "类型": "高端商务酒店",
+        "评分": "4.9分（新开业）",
+        "亮点": "提供免费接送站服务，家庭房宽敞，早餐丰富，距离博物馆车程10分钟。",
+        "坐标": "114.309401,34.815148"  // 铂禧酒店坐标
+      },
+      {
+        "名称": "维也纳酒店（开封博物馆万达店）",
+        "类型": "中端商务酒店",
+        "评分": "4.8分",
+        "亮点": "靠近万达广场，设施崭新，含早餐，适合家庭和商务出行。",
+        "坐标": "114.313073,34.794656"  // 速8酒店(开封市政府店)坐标（推测临近）
+      },
+      {
+        "名称": "欢住·观影酒店（开封博物馆店）",
+        "类型": "主题民宿",
+        "评分": "4.5分",
+        "亮点": "近博物馆，提供投影设备，适合情侣或朋友聚会。",
+        "坐标": "114.329633,34.815224"  // 栖悦民宿酒店坐标
+      }
+    ]
+  }
+}
+const foreat = {
+  "开封特色小吃及景区周边美食": {
+    "必吃小吃": [
+      {
+        "名称": "灌汤包",
+        "历史渊源": "北宋宫廷御膳，皮薄如纸，汤汁浓郁，搭配姜丝醋汁解腻。",
+        "代表店铺": [
+          {
+            "名称": "第一楼（寺后街店）",
+            "地址": "开封市鼓楼区寺后街8号",
+            "价格": "64元/笼（8-10个）",
+            "推荐理由": "中华老字号，蟹粉灌汤包为招牌，《舌尖》同款。"
+          },
+          {
+            "名称": "黄家老店（西司店）",
+            "地址": "开封市龙亭区西司门街16号",
+            "价格": "59元/份",
+            "推荐理由": "本地人常去，羊肉灌汤包配萝卜羊肉汤。"
+          }
+        ]
+      },
+      {
+        "名称": "羊肉炕馍",
+        "特色": "烙馍夹羊肉末，外焦里嫩，葱香与孜然味浓郁。",
+        "推荐摊位": [
+          {
+            "名称": "鼓楼夜市老马家羊肉炕馍",
+            "地址": "开封市鼓楼区鼓楼广场",
+            "价格": "7元/份",
+            "推荐理由": "现点现做，夜市必尝。"
+          },
+          {
+            "名称": "西司夜市丁角街羊肉炕馍",
+            "地址": "开封市龙亭区丁角街",
+            "价格": "8元/份",
+            "推荐理由": "凌晨仍营业，搭配杏仁茶更地道。"
+          }
+        ]
+      },
+      {
+        "名称": "炒凉粉",
+        "制作工艺": "红薯粉炒制，焦香软糯，加蒜薹和辣椒提味。",
+        "经典店铺": [
+          {
+            "名称": "邢家锅贴老店（总店）",
+            "地址": "开封市鼓楼区西门大街98号",
+            "价格": "10-15元/份",
+            "推荐理由": "配锅贴，人均25元。"
+          },
+          {
+            "名称": "夜市流动摊位",
+            "地址": "清明上河园夜市、鼓楼夜市",
+            "价格": "5元/份",
+            "推荐理由": "夜市标配，性价比高。"
+          }
+        ]
+      },
+      {
+        "名称": "桶子鸡",
+        "风味": "百年老汤卤制，咸香酥脆，鸡肉丝丝入味。",
+        "老字号": [
+          {
+            "名称": "马豫兴（鼓楼店）",
+            "地址": "开封市鼓楼区鼓楼广场东南侧",
+            "价格": "半只约60元",
+            "推荐理由": "真空包装可带走，中华老字号。"
+          },
+          {
+            "名称": "寺门白记桶子鸡",
+            "地址": "开封市顺河回族区清平南北街3号",
+            "价格": "半只58-88元",
+            "推荐理由": "本地人推荐，需早去排队。"
+          }
+        ]
+      },
+      {
+        "名称": "四味菜",
+        "搭配": "炸酥肉、牛肉丸、黄花菜、面筋烩于羊肉汤中，配锅盔。",
+        "必吃店铺": [
+          {
+            "名称": "寺门赵记四味菜",
+            "地址": "开封市顺河回族区清平南北街3号",
+            "价格": "20元/碗",
+            "推荐理由": "人均15元，汤鲜味浓。"
+          },
+          {
+            "名称": "鼓楼夜市邢家四味菜",
+            "地址": "开封市鼓楼区鼓楼广场",
+            "价格": "15元/碗",
+            "推荐理由": "夜间营业，配辣椒更过瘾。"
+          }
+        ]
+      },
+      {
+        "名称": "胡辣汤",
+        "流派": "逍遥镇（麻辣鲜香）、北舞渡（醇厚微辣）",
+        "推荐店铺": [
+          {
+            "名称": "老杨家胡辣汤（西司店）",
+            "地址": "开封市龙亭区西司广场",
+            "价格": "8元/碗",
+            "推荐理由": "早餐首选，配油馍头。"
+          },
+          {
+            "名称": "方中山胡辣汤（鼓楼夜市）",
+            "地址": "开封市鼓楼区鼓楼广场",
+            "价格": "10元/碗",
+            "推荐理由": "夜间供应，配水煎包。"
+          }
+        ]
+      }
+    ],
+    "景区周边美食": {
+      "万岁山武侠城": {
+        "景区内美食": [
+          {
+            "名称": "大宋武大郎炊饼",
+            "地址": "景区内水浒街中段",
+            "价格": "10元/个",
+            "推荐理由": "现烤炊饼夹酱牛肉，还原《水浒传》场景。"
+          },
+          {
+            "名称": "江湖串帮羊肉炕馍",
+            "地址": "景区内城寨沙场",
+            "价格": "8元/份",
+            "推荐理由": "比市区更野性，老板“快刀李”剁馅表演值得围观。"
+          }
+        ],
+        "周边夜市": [
+          {
+            "名称": "西司夜市",
+            "地址": "距景区1.5公里",
+            "推荐": "丁角街羊肉炕馍、炒凉粉，人均15元。"
+          },
+          {
+            "名称": "鼓楼夜市",
+            "地址": "距景区2公里",
+            "推荐": "第一楼灌汤包、邢家锅贴。"
+          }
+        ]
+      },
+      "清明上河园": {
+        "园内美食": [
+          {
+            "名称": "东京食坊",
+            "地址": "园内中心区域",
+            "推荐": "邢家锅贴、羊肉炕馍、涮牛肚，人均25元。"
+          },
+          {
+            "名称": "孙羊正店",
+            "地址": "虹桥附近",
+            "推荐": "仿宋酒楼，鲤鱼焙面、套四宝，人均60元。"
+          }
+        ],
+        "周边餐厅": [
+          {
+            "名称": "黄家老店（宋城路店）",
+            "地址": "距景区1公里",
+            "推荐": "灌汤包、鲤鱼焙面，人均40元。"
+          },
+          {
+            "名称": "邢家锅贴老店（总店）",
+            "地址": "距景区1.2公里",
+            "推荐": "锅贴配炒凉粉，人均30元。"
+          }
+        ]
+      },
+      "开封府": {
+        "附近老字号": [
+          {
+            "名称": "黄家老店（西司店）",
+            "地址": "距景区500米",
+            "推荐": "灌汤包、桶子鸡，人均35元。"
+          },
+          {
+            "名称": "又一新饭店（寺后街店）",
+            "地址": "距景区1公里",
+            "推荐": "豫菜代表，鲤鱼焙面、扒广肚，人均80元。"
+          }
+        ],
+        "夜市推荐": [
+          {
+            "名称": "鼓楼夜市",
+            "地址": "距景区1.5公里",
+            "推荐": "黄焖鱼、冰糖梨水，人均20元。"
+          }
+        ]
+      },
+      "大相国寺": {
+        "素斋体验": [
+          {
+            "名称": "大相国寺禅心酒店素斋餐厅",
+            "地址": "寺内",
+            "推荐": "素东坡肉、罗汉斋面，人均30-50元。"
+          }
+        ],
+        "周边美食": [
+          {
+            "名称": "寺门老字号",
+            "地址": "距景区1公里",
+            "推荐": "赵记四味菜、白记桶子鸡，人均20元。"
+          },
+          {
+            "名称": "鼓楼夜市",
+            "地址": "距景区1.2公里",
+            "推荐": "羊肉炕馍、杏仁茶，人均15元。"
+          }
+        ]
+      },
+      "中国翰园碑林": {
+        "周边小吃街": [
+          {
+            "名称": "书店街",
+            "地址": "距景区1.5公里",
+            "推荐": "朱记五香烧饼（3元/个）、百年白记花生糕（10元/袋）。"
+          },
+          {
+            "名称": "鼓楼夜市",
+            "地址": "距景区2公里",
+            "推荐": "邢家锅贴、炒凉粉，人均25元。"
+          }
+        ],
+        "特色餐厅": [
+          {
+            "名称": "又一新饭店（龙亭西路店）",
+            "地址": "距景区2公里",
+            "推荐": "豫菜经典，人均60元。"
+          }
+        ]
+      },
+      "开封博物馆": {
+        "馆内美食": [
+          {
+            "名称": "汴梁小宋城",
+            "地址": "馆内负一层",
+            "推荐": "邢家锅贴、羊肉炕馍，人均30元。"
+          }
+        ],
+        "周边餐厅": [
+          {
+            "名称": "黄家老店（汉兴路店）",
+            "地址": "距景区1公里",
+            "推荐": "灌汤包、鲤鱼焙面，人均40元。"
+          },
+          {
+            "名称": "邢家锅贴老店（金明东街店）",
+            "地址": "距景区1.5公里",
+            "推荐": "锅贴配胡辣汤，人均25元。"
+          }
+        ]
+      }
+    }
+  }
+}
+var map = new BMapGL.Map("mapcontainer");    // 创建Map实例
+var 河南大学金明校区 = new BMapGL.Point(114.31902671079902,34.82298024250347);  // 创建点坐标
+map.centerAndZoom(河南大学金明校区, 15);  // 初始化地图,设置中心点坐标和地图级别
+
+//添加控件
+var zoomCtrl = new BMapGL.ZoomControl();  // 添加缩放控件
+map.addControl(zoomCtrl);
+var LocationControl = new BMapGL.LocationControl()// 添加定位控件
+map.addControl(LocationControl)
+
+const concon = document.getElementById('concontainer')
+const mapcon = document.getElementById('mapcontainer')
+centertocenter(concon,mapcon)
+map.setMapStyleV2({     
+  styleId: 'e8eb04a432b0f4266f631f66add4fd5d'
+});
+</script>
+</body>
+</html>
