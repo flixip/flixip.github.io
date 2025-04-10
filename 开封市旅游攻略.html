@@ -330,12 +330,33 @@
             }
         }
         
-        wheel.addEventListener('mousedown', handleMouseDown);
-        wheel.addEventListener('touchstart', handleMouseDown);
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('touchmove', handleMouseMove);
-        document.addEventListener('touchend', handleMouseUp);
-        document.addEventListener('mouseup', handleMouseUp);
+        function handleTouchStart(e) {
+    e.preventDefault(); // 阻止默认行为防止页面滚动
+    const touch = e.touches[0]; // 获取第一个触摸点
+    handleMouseDown({
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        preventDefault: () => {}
+    });
+}
+
+function handleTouchMove(e) {
+    e.preventDefault(); // 阻止默认行为防止页面滚动
+    const touch = e.touches[0]; // 获取第一个触摸点
+    handleMouseMove({
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        preventDefault: () => {}
+    });
+}
+
+// 修改事件监听部分
+wheel.addEventListener('mousedown', handleMouseDown);
+wheel.addEventListener('touchstart', handleTouchStart, {passive: false}); // 设置为非passive以允许preventDefault
+document.addEventListener('mousemove', handleMouseMove);
+document.addEventListener('touchmove', handleTouchMove, {passive: false}); // 设置为非passive以允许preventDefault
+document.addEventListener('touchend', handleMouseUp);
+document.addEventListener('mouseup', handleMouseUp);
     }
 
         // 为两个转盘添加拖动事件
