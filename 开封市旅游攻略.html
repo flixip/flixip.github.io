@@ -41,7 +41,7 @@
         #show_page{
            
             height: 100vh;
-
+            
         }
         .control-wheel {
             position: absolute;
@@ -280,8 +280,7 @@
         let startDeg = deg;
         let lastIndex = null; // 记录上次的索引
         
-
-        wheel.addEventListener('mousedown', (e) => {
+        function handleMouseDown(e) {
             isDragging = true;
             const rect = wheel.getBoundingClientRect();
             const centerX = rect.left + rect.width/2;
@@ -289,9 +288,9 @@
             startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180 / Math.PI;
             startDeg = deg;
             e.preventDefault();
-        });
+        }
         
-        document.addEventListener('mousemove', (e) => {
+        function handleMouseMove(e) {
             if(!isDragging) return;
             const rect = wheel.getBoundingClientRect();
             const centerX = rect.left + rect.width/2;
@@ -319,10 +318,9 @@
             }
             
             wheel.style.transform = `rotate(${deg}deg) scale(${wheel.classList.contains('closed') ? 0.1 : scale})`;
-            
-        });
-
-        document.addEventListener('mouseup', () => {
+        }
+        
+        function handleMouseUp() {
             isDragging = false;
             const remainder = deg % 60;
             if(remainder !== 0) {
@@ -330,12 +328,16 @@
                 wheel.style.transition = 'transform 0.3s ease-out';
                 wheel.style.transform = `rotate(${deg}deg) scale(${wheel.classList.contains('closed') ? 0.1 : scale})`;
             }
-        });
+        }
+        
+        wheel.addEventListener('mousedown', handleMouseDown);
+        wheel.addEventListener('touchstart', handleMouseDown);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('touchmove', handleMouseMove);
+        document.addEventListener('touchend', handleMouseUp);
+        document.addEventListener('mouseup', handleMouseUp);
     }
 
-    // 修改循环生成segment的部分
-        // ... 创建segment和文本的代码保持不变 ...
-        
         // 为两个转盘添加拖动事件
         setupDrag(whl0, 1);   // whl0缩放比例为1
         setupDrag(whl1, 1.5); // whl1缩放比例为1.5
