@@ -352,8 +352,8 @@
 
 function handleTouchMove(e) {
     e.preventDefault(); // 阻止默认行为防止页面滚动
+    const touch = e.touches[0];
     if(isTap) {
-            const touch = e.touches[0];
             // 计算移动距离
             const dx = Math.abs(touch.clientX - touchStartX);
             const dy = Math.abs(touch.clientY - touchStartY);
