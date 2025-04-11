@@ -385,10 +385,10 @@ function handleTouchEnd(e) {
 // 修改事件监听部分
 wheel.addEventListener('mousedown', handleMouseDown);
 wheel.addEventListener('touchstart', handleTouchStart, {passive: false}); // 设置为非passive以允许preventDefault
-document.addEventListener('mousemove', handleMouseMove);
-document.addEventListener('touchmove', handleTouchMove, {passive: false}); // 设置为非passive以允许preventDefault
-document.addEventListener('touchend', handleTouchEnd);
-document.addEventListener('mouseup', handleMouseUp);
+wheel.addEventListener('mousemove', handleMouseMove);
+wheel.addEventListener('touchmove', handleTouchMove, {passive: false}); // 设置为非passive以允许preventDefault
+wheel.addEventListener('touchend', handleTouchEnd);
+wheel.addEventListener('mouseup', handleMouseUp);
     }
 
         // 为两个转盘添加拖动事件
