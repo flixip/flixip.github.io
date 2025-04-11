@@ -280,6 +280,10 @@
         let startDeg = deg;
         let lastIndex = null; // 记录上次的索引
         
+        let touchStartTime = 0;
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let isTap = false;
         function handleMouseDown(e) {
             isDragging = true;
             const rect = wheel.getBoundingClientRect();
@@ -333,6 +337,12 @@
         function handleTouchStart(e) {
     e.preventDefault(); // 阻止默认行为防止页面滚动
     const touch = e.touches[0]; // 获取第一个触摸点
+    touchStartTime = Date.now();
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        isTap = true;
+    
+    
     handleMouseDown({
         clientX: touch.clientX,
         clientY: touch.clientY,
@@ -342,20 +352,42 @@
 
 function handleTouchMove(e) {
     e.preventDefault(); // 阻止默认行为防止页面滚动
-    const touch = e.touches[0]; // 获取第一个触摸点
+    if(isTap) {
+            const touch = e.touches[0];
+            // 计算移动距离
+            const dx = Math.abs(touch.clientX - touchStartX);
+            const dy = Math.abs(touch.clientY - touchStartY);
+            // 如果移动超过5px则视为拖拽
+            if(dx > 5 || dy > 5) {
+                isTap = false;
+            }
+        }
+    
+    
     handleMouseMove({
         clientX: touch.clientX,
         clientY: touch.clientY,
         preventDefault: () => {}
     });
 }
-
+function handleTouchEnd(e) {
+        const duration = Date.now() - touchStartTime;
+        // 点击判定条件：短于300ms且位移小于5px
+        if(isTap && duration < 300) {
+            const touch = e.changedTouches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            if(target && target.closest('.segment')) {
+                target.dispatchEvent(new Event('click'));
+            }
+        }
+        handleMouseUp();
+    }
 // 修改事件监听部分
 wheel.addEventListener('mousedown', handleMouseDown);
 wheel.addEventListener('touchstart', handleTouchStart, {passive: false}); // 设置为非passive以允许preventDefault
 document.addEventListener('mousemove', handleMouseMove);
 document.addEventListener('touchmove', handleTouchMove, {passive: false}); // 设置为非passive以允许preventDefault
-document.addEventListener('touchend', handleMouseUp);
+document.addEventListener('touchend', handleTouchEnd);
 document.addEventListener('mouseup', handleMouseUp);
     }
 
