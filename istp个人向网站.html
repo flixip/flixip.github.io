@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISTP - 务实的分析者</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E3A8A', // 深蓝色 - 理性、冷静
+                        secondary: '#374151', // 深灰色 - 务实
+                        accent: '#F97316', // 橙色 - 行动力
+                        neutral: '#F3F4F6', // 浅灰色
+                        'neutral-dark': '#1F2937', // 暗灰色
+                        'istp-silver': '#9CA3AF', // 银色 - 精确
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                            'fade-in': 'fadeIn 1s ease-in forwards',
+                        },
+                    keyframes: {
+                        fadeIn: {
+                        '0%': { opacity: '0', transform: 'translateY(20px)' },
+                        '100%': { opacity: '1', transform: 'translateY(0)' }
+                        }
+                        },
+            }
+        }
+    }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .transition-transform {
+                transition-property: transform;
+                transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+                transition-duration: 300ms;
+            }
+            .card-hover {
+                @apply hover:shadow-lg hover:-translate-y-1 transition-all duration-300;
+            }
+        }
+    </style>
+    <style>
+    #l-pupil, #r-pupil, #l-light, #r-light {
+    transition: left 0.1s ease, top 0.1s ease;
+    }
+    </style>
+</head>
+<body class="bg-gray-50 text-secondary">
+    <!-- 导航栏 -->
+    <nav id="navbar" class="fixed w-full z-50 transition-all duration-300 bg-transparent">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="#" class="text-2xl font-bold text-white flex items-center">
+                <span class="bg-accent p-1 rounded mr-2"><i class="fa fa-cogs text-white"></i></span>
+                <span>ISTP-ANALYZER</span>
+            </a>
+            <div class="hidden md:flex space-x-8">
+                <a href="#overview" class="text-white hover:text-accent transition-colors">PROFILE</a>
+                <a href="#strengths" class="text-white hover:text-accent transition-colors">DIS/ADVANTAGES</a>
+                <a href="#accessories" class="text-white hover:text-accent transition-colors">INTRESTS</a>
+            </div>
+            <button class="md:hidden text-white text-xl" id="menu-toggle">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
+        <!-- 移动端菜单 -->
+        <div id="mobile-menu" class="hidden md:hidden bg-primary/95 backdrop-blur-sm">
+            <div class="container mx-auto px-4 py-4 flex flex-col space-y-4">
+                <a href="#overview" class="text-white hover:text-accent transition-colors py-2">PROFILE</a>
+                <a href="#strengths" class="text-white hover:text-accent transition-colors py-2">DIS/ADVANTAGES</a>
+                <a href="#accessories" class="text-white hover:text-accent transition-colors py-2">INTRESTS</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 英雄区 -->
+    <header class="relative h-screen flex items-center justify-center bg-gradient-to-br from-primary to-neutral-dark overflow-hidden">
+        <div class="absolute inset-0 opacity-20">
+            <div class="absolute w-64 h-64 rounded-full bg-accent/30 blur-3xl -top-20 -left-20"></div>
+            <div class="absolute w-96 h-96 rounded-full bg-istp-silver/20 blur-3xl bottom-10 right-10"></div>
+        </div>
+        <div class="container mx-auto px-4 z-10 text-center">
+            <h1 class="text-[clamp(2.5rem,8vw,5rem)] font-bold text-white mb-6 leading-tight text-shadow">
+                ISTP<br>A Practical Analyst
+            </h1>
+            <p class="text-[clamp(1rem,3vw,1.5rem)] text-gray-100 max-w-3xl mx-auto mb-10">
+                - Calm/Rational/Problem-solving Doer -
+            </p>
+            <a href="#overview" class="inline-block bg-accent hover:bg-accent/90 text-white font-medium px-8 py-3 rounded-lg transition-all shadow-lg hover:shadow-accent/30">
+                what's more <i class="fa fa-arrow-down ml-2"></i>
+            </a>
+        </div>
+        <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 text-white animate-bounce">
+            <i class="fa fa-angle-double-down text-2xl"></i>
+        </div>
+    </header>
+
+    <!-- 概览部分 -->
+    <section id="overview" class="py-20 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-[clamp(1.8rem,5vw,3rem)] font-bold text-primary mb-4">ISTP -PROFILE</h2>
+                <div class="w-24 h-1 bg-accent mx-auto"></div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <p class="text-lg mb-6 text-gray-700 leading-relaxed">
+                        ISTP (Introversion, Sensing, Thinking, Perceiving) is one of the personality types in the Myers-Briggs Type Indicator (MBTI), accounting for approximately 5-6% of the population. 
+                    </p>
+                    <p class="text-lg mb-6 text-gray-700 leading-relaxed">
+                        known as "Craftsmen" or "Analysts" and are famous for their pragmatism(实用主义), calm judgment, and ability to solve practical problems. ISTPs tend to express themselves through actions rather than words and enjoy solving problems with their own hands.
+                    </p>
+                    <div class="flex flex-wrap gap-3 mt-8">
+                        <div class="bg-neutral px-4 py-2 rounded-full text-secondary font-medium flex items-center">
+                            <i class="fa fa-user-secret text-accent mr-2"></i> Introversion (I)
+                        </div>
+                        <div class="bg-neutral px-4 py-2 rounded-full text-secondary font-medium flex items-center">
+                            <i class="fa fa-eye text-accent mr-2"></i> Sensing (S)
+                        </div>
+                        <div class="bg-neutral px-4 py-2 rounded-full text-secondary font-medium flex items-center">
+                            <i class="fa fa-brain text-accent mr-2"></i> Thinking (T)
+                        </div>
+                        <div class="bg-neutral px-4 py-2 rounded-full text-secondary font-medium flex items-center">
+                            <i class="fa fa-random text-accent mr-2"></i> Perceiving (P)
+                        </div>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="absolute -inset-4 bg-yellow-200 rounded-2xl transform rotate-6"></div>
+                    <img src="./imgs/istp.png" alt="ISTP性格象征图：展示一个人正在专注修理机械装置" class="relative bg-yellow-300 rounded-xl shadow-lg h-[25rem] mx-auto fade-in-element">
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- 优缺点部分 -->
+    <section id="strengths" class="py-20 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-[clamp(1.8rem,5vw,3rem)] font-bold text-primary mb-4">ISTP -DIS/ADVANTAGES</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">Every personality type has its unique strengths and potential areas for development.</p>
+                <div class="w-24 h-1 bg-accent mx-auto mt-4"></div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-12">
+                <!-- 优点 -->
+                <div>
+                    <div class="flex items-center mb-8">
+                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                            <i class="fa fa-plus text-green-600 text-xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-secondary">Advantages and Talents</h3>
+                    </div>
+                    
+                    <ul class="space-y-5">
+                        <li class="flex">
+                            <div class="flex-shrink-0 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mt-1 mr-4">
+                                <i class="fa fa-check text-green-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-1 text-secondary">Excellent problem-solving skills</h4>
+                                <p class="text-gray-600">They can quickly analyze problems and find practical solutions, and are particularly skilled at handling emergency situations.</p>
+                            </div>
+                        </li>
+                        <li class="flex">
+                            <div class="flex-shrink-0 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mt-1 mr-4">
+                                <i class="fa fa-check text-green-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-1 text-secondary">Strong practical operational skills</h4>
+                                <p class="text-gray-600">They excel in mechanics, tool use, and hands-on operations, and learn practical skills quickly.</p>
+                            </div>
+                        </li>
+                        <li class="flex">
+                            <div class="flex-shrink-0 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mt-1 mr-4">
+                                <i class="fa fa-check text-green-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-1 text-secondary">Strong Adaptability</h4>
+                                <p class="text-gray-600">They can easily adapt to changes and maintain efficient work in uncertain environments</p>
+                            </div>
+                        </li>
+                        <li class="flex">
+                            <div class="flex-shrink-0 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mt-1 mr-4">
+                                <i class="fa fa-check text-green-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-1 text-secondary">Remain calm under pressure</h4>
+                                <p class="text-gray-600">They remain calm in crisis situations, capable of analyzing rationally and taking effective actions.</p>
+                            </div>
+                        </li>
+                        <li class="flex">
+                            <div class="flex-shrink-0 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mt-1 mr-4">
+                                <i class="fa fa-check text-green-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-1 text-secondary">Prioritize efficiency</h4>
+                                <p class="text-gray-600">They focus on results and practicality, and can find the most effective way to complete tasks.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- 缺点 -->
+                <div>
+                    <div class="flex items-center mb-8">
+                        <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                            <i class="fa fa-minus text-red-600 text-xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-secondary">Potential Challenges</h3>
+                    </div>
+                    
+                    <ul class="space-y-5">
+                        <li class="flex">
+                            <div class="flex-shrink-0 w-6 h-6 bg-red-100 rounded-full flex items-center justify-center mt-1 mr-4">
+                                <i class="fa fa-times text-red-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-1 text-secondary">They dislike planning and long-term goals.</h4>
+                                <p class="text-gray-600">They tend to live in the present, may overlook long-term planning, and feel uncomfortable in overly structured environments</p>
+                            </div>
+                        </li>
+                        <li class="flex">
+                            <div class="flex-shrink-0 w-6 h-6 bg-red-100 rounded-full flex items-center justify-center mt-1 mr-4">
+                                <i class="fa fa-times text-red-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-1 text-secondary">Limited emotional expression</h4>
+                                <p class="text-gray-600">They may struggle to express their own emotions or understand others' emotional needs, often coming across as cold or distant.</p>
+                            </div>
+                        </li>
+                        <li class="flex">
+                            <div class="flex-shrink-0 w-6 h-6 bg-red-100 rounded-full flex items-center justify-center mt-1 mr-4">
+                                <i class="fa fa-times text-red-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-1 text-secondary">They lack patience for theories and abstract concepts</h4>
+                                <p class="text-gray-600">They focus more on practical application than theoretical discussion and may overlook important conceptual thinking.</p>
+                            </div>
+                        </li>
+                        <li class="flex">
+                            <div class="flex-shrink-0 w-6 h-6 bg-red-100 rounded-full flex items-center justify-center mt-1 mr-4">
+                                <i class="fa fa-times text-red-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-1 text-secondary">They may avoid conflict.</h4>
+                                <p class="text-gray-600">Though rational, they may avoid addressing emotional conflicts or interpersonal issues that require in-depth discussion.</p>
+                            </div>
+                        </li>
+                        <li class="flex">
+                            <div class="flex-shrink-0 w-6 h-6 bg-red-100 rounded-full flex items-center justify-center mt-1 mr-4">
+                                <i class="fa fa-times text-red-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-1 text-secondary">They tend to get bored easily</h4>
+                                <p class="text-gray-600">They need constant new challenges and stimulation; otherwise, they may become indifferent or disengage.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 主题配件部分 -->
+    <section id="accessories" class="py-20 bg-neutral-dark text-blue-800 h-[150vh]">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-[clamp(1.8rem,5vw,3rem)] font-bold mb-4">ISTP -MY INTREASTS</h2>
+                <p class="text-lg text-gray-300 max-w-5xl mx-auto">Interests shape and deepen the behavioral tendencies and cognitive patterns of MBTI personality types in a reverse way by strengthening the core traits of each MBTI type and expanding the boundaries of their corresponding abilities.</p>
+                <div class="w-24 h-1 bg-accent mx-auto mt-4"></div>
+            </div>
+            
+            <div class="relative">
+                <!-- 配件1 -->
+                <div class="absolute mb-10 bg-blue-100 rounded-xl w-64 overflow-hidden shadow-lg card-hover p-5 z-10">
+                    <img src="./imgs/program.png" alt="多功能工具刀" class="w-full h-48 object-cover rounded-2xl">
+                    <div class="p-5">
+                        <h3 class="text-xl font-bold mb-2">Program</h3>
+                        <p class="text-blue-700 text-sm">Having a passion for programming epitomizes the independent focus of ISTP's introversion, the pragmatic hands-on approach of their sensing, and the objective logic of their thinking.</p>
+                    </div>
+                </div>
+                
+                <!-- 配件2 -->
+                <div class="absolute top-4 left-6 bg-accent w-64 rounded-xl overflow-hidden shadow-lg card-hover hover:z-20 duration-100">
+                    <img src="./imgs/phira.png" alt="精密手表" class="w-full h-48 object-cover">
+                    <div class="p-5">
+                        <h3 class="text-xl text-white font-bold mb-2">Rhythm Game</h3>
+                        <p class="text-gray-300 text-sm">Rhythm games, characterized by immediate feedback, hands-on orientation, and minimal redundant rules, can precisely align with ISTPs' traits of focusing on efficient outcomes and being adept at hands-on practice and real-time reactions, thereby bringing a sense of accomplishment and skill improvement.</p>
+                    </div>
+                </div>
+                <!-- 笑脸配件  -->
+                <div class="absolute rounded-full w-[40rem] h-[40rem] bg-yellow-500 top-10 left-1/3 shadow-lg">
+                    <div id="l-eye" class=" absolute w-[10rem] h-[10rem] top-[25%] left-[15%] rounded-full bg-white">
+                        <div id="l-pupil" class="absolute w-[60px] h-[60px] top-10 bg-black rounded-full">
+                            <div id="l-light" class="absolute w-[20px] h-[20px] top-[10px] bg-white rounded-full"></div>
+                        </div>
+                    </div>
+                    <div id='r-eye' class=" absolute w-[10rem] h-[10rem] top-[25%] right-[15%] rounded-full bg-white">
+                        <div id="r-pupil" class="absolute w-[60px] h-[60px] top-10 bg-black rounded-full">
+                            <div id="r-light" class="absolute w-[20px] h-[20px] top-[10px] bg-white rounded-full"></div>
+                        </div>
+                    </div>
+                    <div id='mouth' class=" absolute w-[20rem] h-[10rem] bottom-[10%] left-[25%] rounded-b-full bg-red-700 origin-center shadow-lg">
+                        <div id="tongue" class=" absolute w-[10rem] h-[5rem] bottom-0 left-[25%] rounded-b-full bg-red-900 shadow-lg"></div>
+                    </div>
+                </div>
+                      
+            </div>
+        </div>
+    </section>
+
+    <!-- 引用部分 -->
+    <section class="py-16 bg-primary text-white">
+        <div class="container mx-auto px-4 text-center">
+            <i class="fa fa-quote-left text-4xl text-accent/50 mb-6"></i>
+            <blockquote class="text-[clamp(1.2rem,4vw,2rem)] font-light italic max-w-4xl mx-auto mb-8 leading-relaxed">
+                "People with the ISTP personality type are like engineers in life—they don’t care about theories; they only care about how things work and how to make them work better."
+            </blockquote>
+            <cite class="text-gray-300"> — The Myers-Briggs Type Indicator (MBTI) Theory</cite>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="bg-neutral-dark text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-6 md:mb-0">
+                    <div class="flex items-center justify-center md:justify-start">
+                        <span class="bg-accent p-1 rounded mr-2"><i class="fa fa-cogs text-white"></i></span>
+                        <span class="text-xl font-bold">ISTP 分析者</span>
+                    </div>
+                    <p class="text-gray-400 mt-2 text-center md:text-left">探索ISTP性格类型的世界</p>
+                </div>
+                
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-400 hover:text-accent transition-colors">
+                        <i class="fa fa-facebook"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-accent transition-colors">
+                        <i class="fa fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-accent transition-colors">
+                        <i class="fa fa-instagram"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-accent transition-colors">
+                        <i class="fa fa-linkedin"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500 text-sm">
+                <p>© 2023 ISTP 性格类型网站 | 基于迈尔斯-布里格斯性格类型指标</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // 导航栏滚动效果
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('bg-primary/95', 'backdrop-blur-sm', 'shadow-md');
+                navbar.classList.remove('bg-transparent');
+            } else {
+                navbar.classList.remove('bg-primary/95', 'backdrop-blur-sm', 'shadow-md');
+                navbar.classList.add('bg-transparent');
+            }
+        });
+        
+        // 移动端菜单切换
+        const menuToggle = document.getElementById('menu-toggle');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        menuToggle.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                // 关闭移动端菜单（如果打开）
+                if (!mobileMenu.classList.contains('hidden')) {
+                    mobileMenu.classList.add('hidden');
+                }
+                
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+        
+        // 卡片悬停效果增强
+        document.querySelectorAll('.card-hover').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-5px)';
+                card.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+                card.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)';
+            });
+        });
+        const fadeElements = document.querySelectorAll('.fade-in-element');
+    
+        // 检查元素是否在视口中
+        const isInViewport = (element) => {
+        const rect = element.getBoundingClientRect();
+        return (
+            rect.top <= (window.innerHeight || document.documentElement.clientHeight) * 0.85 &&
+            rect.bottom >= 0
+        );
+        };
+        
+        // 处理滚动事件的函数
+        const handleScroll = () => {
+        fadeElements.forEach(element => {
+            if (isInViewport(element) && !element.classList.contains('animate-fade-in')) {
+            element.classList.add('animate-fade-in');
+            }
+        });
+        };
+        
+        // 初始检查
+        handleScroll();
+        
+        // 监听滚动事件
+        window.addEventListener('scroll', handleScroll);
+
+         // 1. 获取所有需要控制的元素
+        // 获取元素
+    const lEye = document.getElementById('l-eye');
+    const rEye = document.getElementById('r-eye');
+    const lPupil = document.getElementById('l-pupil');
+    const rPupil = document.getElementById('r-pupil');
+    const lLight = document.getElementById('l-light');
+    const rLight = document.getElementById('r-light');
+
+    // 初始化：让瞳孔居中（只执行一次，基于初始尺寸）
+    function initPupilCenter(eye, pupil) {
+        const eyeRect = eye.getBoundingClientRect();
+        const pupilW = pupil.offsetWidth;
+        const pupilH = pupil.offsetHeight;
+        // 瞳孔左上角坐标 = 眼白左上角 + (眼白尺寸 - 瞳孔尺寸)/2（实现居中）
+        pupil.style.left = `${(eyeRect.width - pupilW) / 2}px`;
+        pupil.style.top = `${(eyeRect.height - pupilH) / 2}px`;
+    }
+    initPupilCenter(lEye, lPupil);
+    initPupilCenter(rEye, rPupil);
+
+    // 核心函数：控制单个眼睛的跟随（确保不飞出）
+    function followMouse(eye, pupil, light, mouseX, mouseY) {
+        // 1. 获取当前眼白的视口坐标和尺寸（每次移动都重新获取，适配缩放）
+        const eyeRect = eye.getBoundingClientRect();
+        // 眼白中心的视口坐标（X：眼白左边缘 + 眼白宽度/2；Y同理）
+        const eyeCenterX = eyeRect.left + eyeRect.width / 2;
+        const eyeCenterY = eyeRect.top + eyeRect.height / 2;
+
+        // 2. 获取瞳孔尺寸（每次移动都重新获取，避免样式变化导致尺寸失效）
+        const pupilW = pupil.offsetWidth;
+        const pupilH = pupil.offsetHeight;
+
+        // 3. 计算最大允许偏移量（眼白是圆形，按半径限制）
+        const eyeRadius = eyeRect.width / 2; // 眼白半径
+        const pupilRadius = pupilW / 2;     // 瞳孔半径
+        const maxOffset = eyeRadius - pupilRadius; // 瞳孔中心最多能偏离眼白中心的距离（确保瞳孔不超出眼白）
+
+        // 4. 计算鼠标相对于眼白中心的偏移量（视口坐标，基准统一）
+        const deltaX = mouseX - eyeCenterX; // X方向偏移（鼠标在眼白中心右侧为正，左侧为负）
+        const deltaY = mouseY - eyeCenterY; // Y方向偏移（鼠标在眼白中心下方为正，上方为负）
+
+        // 5. 限制偏移量：确保瞳孔中心不超出眼白边界
+        const distance = Math.hypot(deltaX, deltaY); // 鼠标到眼白中心的直线距离
+        let offsetX = deltaX;
+        let offsetY = deltaY;
+        // 如果距离超过最大允许偏移，按比例缩小偏移量（保持方向不变，距离=maxOffset）
+        if (distance > maxOffset) {
+            offsetX = (deltaX / distance) * maxOffset;
+            offsetY = (deltaY / distance) * maxOffset;
+        }
+
+        // 6. 计算瞳孔最终的左上角坐标（相对于眼白，不是视口！）
+        // 瞳孔左上角 = 眼白左上角 + (眼白宽度-瞳孔宽度)/2（初始居中） + 偏移量（相对于眼白中心）
+        const pupilLeft = (eyeRect.width - pupilW) / 2 + offsetX;
+        const pupilTop = (eyeRect.height - pupilH) / 2 + offsetY;
+
+        // 7. 应用最终位置（同步瞳孔和高光）
+        pupil.style.left = `${pupilLeft}px`;
+        pupil.style.top = `${pupilTop}px`;
+        // 高光相对于瞳孔的位置不变（始终在左上角10px处）
+        light.style.left = '10px';
+        light.style.top = '10px';
+    }
+
+    // 监听鼠标移动（用clientX/clientY：视口坐标，与眼白基准统一）
+    document.addEventListener('mousemove', (e) => {
+        followMouse(lEye, lPupil, lLight, e.clientX, e.clientY);
+        followMouse(rEye, rPupil, rLight, e.clientX, e.clientY);
+    });
+
+    // 窗口缩放时重新初始化（避免尺寸变化导致偏移）
+    window.addEventListener('resize', () => {
+        initPupilCenter(lEye, lPupil);
+        initPupilCenter(rEye, rPupil);
+    });
+        
+    </script>
+</body>
+</html>
