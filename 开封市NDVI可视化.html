@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>开封市NDVI时空变化可视化</title>
+    <!-- 引入必要的库 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/geotiff"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>  
+    <!-- 配置Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#10b981', // 绿色主题
+                        secondary: '#059669',
+                        accent: '#047857',
+                        dark: '#064e3b',
+                        light: '#ecfdf5',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .glass {
+                background: rgba(255, 255, 255, 0.15);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .glass-dark {
+                background: rgba(15, 23, 42, 0.7);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            }
+            .progress-track {
+                height: 6px;
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 3px;
+            }
+            .progress-thumb {
+                width: 20px;
+                height: 20px;
+                background: #10b981;
+                border-radius: 50%;
+                cursor: pointer;
+                box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+                transition: all 0.2s ease;
+            }
+            .progress-thumb:hover {
+                transform: scale(1.2);
+                box-shadow: 0 0 15px rgba(16, 185, 129, 0.7);
+            }
+            .progress-marker {
+                width: 2px;
+                height: 12px;
+                background: rgba(255, 255, 255, 0.5);
+                position: absolute;
+                bottom: 100%;
+            }
+            .progress-label {
+                position: absolute;
+                bottom: calc(100% + 15px);
+                transform: translateX(-50%);
+                font-size: 12px;
+                color: rgba(0, 0, 0, 0.8);
+                white-space: nowrap;
+                -webkit-user-select: none; /* Safari/Chrome */
+                -moz-user-select: none;    /* Firefox */
+                -ms-user-select: none;     /* IE/Edge */
+                user-select: none;         /* 标准属性 */
+                cursor: default;           /* 可选：鼠标移上去显示默认光标，增强体验 */
+            }
+            .chart-container {
+                position: relative;
+                width: 100%;
+                height: 300px;
+            }
+            .table-container {
+                max-height: 300px;
+                overflow-y: auto;
+            }
+            .table-container::-webkit-scrollbar {
+                width: 6px;
+            }
+            .table-container::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.1);
+            }
+            .table-container::-webkit-scrollbar-thumb {
+                background: rgba(16, 185, 129, 0.5);
+                border-radius: 3px;
+            }
+            .panel-transition {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .boundary-layer {
+                z-index: 100;
+            }
+            #settingPanel {
+                scrollbar-width: thin; /* 火狐 */
+                scrollbar-color: rgba(16,185,129,0.5) rgba(15,23,42,0.2);
+            }
+            #settingPanel::-webkit-scrollbar {
+                width: 6px;
+            }
+            #settingPanel::-webkit-scrollbar-track {
+                background: rgba(15,23,42,0.2);
+                border-radius: 3px;
+            }
+            #settingPanel::-webkit-scrollbar-thumb {
+                background: rgba(16,185,129,0.5);
+                border-radius: 3px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white h-screen flex flex-col overflow-hidden">
+    <!-- 顶部导航栏 -->
+    <header class="glass-dark px-6 py-3 flex items-center justify-between z-50 relative">
+        <div class="flex items-center space-x-3">
+            <i class="fas fa-leaf text-primary text-2xl"></i>
+            <h1 class="text-xl font-bold">开封市NDVI时空变化分析</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+            <button id="togglePanelBtn" class="flex items-center space-x-2 px-4 py-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition-all">
+                <i class="fas fa-chart-bar"></i>
+                <span>数据面板</span>
+            </button>
+            <button id="resetViewBtn" class="flex items-center space-x-2 px-4 py-2 rounded-lg bg-gray-700/50 hover:bg-gray-700/70 transition-all">
+                <i class="fas fa-redo"></i>
+                <span>重置视图</span>
+            </button>
+            <!-- 导航栏按钮区新增（togglePanelBtn和resetViewBtn之间） -->
+            <button id="toggleSimplifiedBtn" class="flex items-center space-x-2 px-4 py-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition-all">
+                <i class="fas fa-palette"></i>
+                <span>精简显示</span>
+            </button>
+            <button id="settingBtn" class="flex items-center space-x-2 px-4 py-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition-all">
+                <i class="fas fa-cog"></i><span>参数设置</span>
+                </button>
+        </div>
+    </header>
+    <!-- 数据面板和地图容器 -->
+    <div class="flex flex-1 overflow-hidden">
+        <!-- 地图容器 -->
+        <div id="map" class="flex-1 z-10"></div>
+
+        <!-- 右侧数据面板 -->
+        <div id="dataPanel" class="glass-dark fixed right-0 w-90 h-full pb-12 rounded-2xl overflow-y-auto panel-transition transform translate-x-0 z-20">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-green-300">数据可视化</h2>
+                    <button id="closePanelBtn" class="text-white/70 hover:text-white transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- 视图切换按钮 -->
+                <div class="flex space-x-2 mb-6 text-md">
+                    <button id="tableViewBtn" class="flex-1 py-2 px-4 rounded-lg bg-primary text-white">
+                        <i class="fas fa-table mr-2"></i>表格
+                    </button>
+                    <button id="lineChartBtn" class="flex-1 py-2 px-4 rounded-lg bg-gray-700/50 hover:bg-gray-700/70 transition-all">
+                        <i class="fas fa-chart-line mr-2"></i>折线图
+                    </button>
+                    <button id="barChartBtn" class="flex-1 py-2 px-4 rounded-lg bg-gray-700/50 hover:bg-gray-700/70 transition-all">
+                        <i class="fas fa-chart-bar mr-2"></i>柱状图
+                    </button>
+                </div>
+
+                <!-- 数据状态显示 -->
+                <div class="mb-6 p-4 glass-dark rounded-lg">
+                    <div id="globalViewState" class="flex items-center space-x-2">
+                        <i class="fas fa-globe text-primary"></i>
+                        <span>全局视图：显示所有区县数据</span>
+                    </div>
+                    <div id="districtViewState" class="hidden flex items-center space-x-2">
+                        <i class="fas fa-map-marker-alt text-primary"></i>
+                        <span>区县视图：<span id="selectedDistrictName">未选择</span></span>
+                    </div>
+                </div>
+
+                <!-- 可视化内容区域 -->
+                <div id="visualizationContent">
+                    <!-- 表格视图 -->
+                    <div id="tableView" class="table-container">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-white/10">
+                                    <th class="text-left py-3 px-2 text-green-400 font-semibold">区县</th>
+                                    <th class="text-right py-3 px-2 text-green-400 font-semibold">NDVI均值</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dataTableBody">
+                                <!-- 表格内容将通过JavaScript动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 折线图视图 -->
+                    <div id="lineChartView" class="hidden">
+                        <div class="chart-container">
+                            <canvas id="lineChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 柱状图视图 -->
+                    <div id="barChartView" class="hidden">
+                        <div class="chart-container">
+                            <canvas id="barChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 统计信息卡片 -->
+                <div class="mt-6 grid grid-cols-2 gap-4">
+                    <div class="p-4 glass-dark rounded-lg card-hover">
+                        <div class="text-white/60 text-sm">最高NDVI</div>
+                        <div id="maxNDVIValue" class="text-2xl font-bold text-primary">0.0000</div>
+                        <div id="maxNDVIDistrict" class="text-xs text-white/70">未选择</div>
+                    </div>
+                    <div class="p-4 glass-dark rounded-lg card-hover">
+                        <div class="text-white/60 text-sm">最低NDVI</div>
+                        <div id="minNDVIValue" class="text-2xl font-bold text-primary">0.0000</div>
+                        <div id="minNDVIDistrict" class="text-xs text-white/70">未选择</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 参数设置面板 -->
+    <div id="settingPanel" class="glass-dark fixed rounded-2xl p-6 hidden z-50 w-96 max-h-[80vh] overflow-y-auto shadow-lg border border-white/15">
+     <!-- 面板标题+关闭按钮 -->
+        <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold text-green-300">图层可视化参数</h3>
+        <button id="closeSettingBtn" class="text-white/70 hover:text-white transition-colors">
+            <i class="fas fa-times"></i>
+        </button>
+        </div>
+
+    <!-- 图层类型选择（区分填充层/TIFF层） -->
+    <div class="mb-4">
+        <label class="block text-sm text-white/80 mb-1">调整对象</label>
+        <select id="layerTypeSelect" class="w-full bg-gray-800 rounded px-2 py-1 text-white border border-gray-700">
+            <option value="fill">填充图层（精简模式）</option>
+            <option value="tiff">TIFF图层（详细模式）</option>
+        </select>
+    </div>
+
+    <!-- 参数输入项 -->
+    <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+            <label class="block text-sm text-white/80 mb-1">NDVI最小值</label>
+            <input type="number" id="ndviMin" step="0.01" value="0.2" class="w-full bg-gray-800 rounded px-2 py-1 text-white border border-gray-700">
+        </div>
+        <div>
+            <label class="block text-sm text-white/80 mb-1">NDVI最大值</label>
+            <input type="number" id="ndviMax" step="0.01" value="0.5" class="w-full bg-gray-800 rounded px-2 py-1 text-white border border-gray-700">
+        </div>
+        <div>
+            <label class="block text-sm text-white/80 mb-1">Gamma校正</label>
+            <input type="number" id="gammaVal" step="0.1" value="1.2" class="w-full bg-gray-800 rounded px-2 py-1 text-white border border-gray-700">
+        </div>
+        <div>
+            <label class="block text-sm text-white/80 mb-1">不透明度</label>
+            <input type="range" id="opacityVal" min="0" max="1" step="0.1" value="1" class="w-full mt-2">
+            <span id="opacityText" class="text-xs text-white/60">100%</span>
+        </div>
+    </div>
+
+    <!-- 调色板输入 -->
+    <!-- 替换原调色板输入区域 -->
+    <div class="mb-6">
+    <label class="block text-sm text-white/80 mb-1">调色板（每个框填1个颜色）</label>
+    <!-- 颜色输入框容器 -->
+    <div id="paletteInputsContainer" class="space-y-2 mb-2">
+        <!-- 默认3个颜色输入框（对应原默认palette） -->
+        <input type="text" class="palette-input w-full bg-gray-800 rounded px-2 py-1 text-white border border-gray-700" value="rgb(230,255,237)" placeholder="例：#ffffff 或 rgb(255,255,255)">
+        <input type="text" class="palette-input w-full bg-gray-800 rounded px-2 py-1 text-white border border-gray-700" value="rgb(113,211,158)" placeholder="例：#00ff00 或 rgb(0,255,0)">
+        <input type="text" class="palette-input w-full bg-gray-800 rounded px-2 py-1 text-white border border-gray-700" value="rgb(4,120,87)" placeholder="例：#047857 或 rgb(4,120,87)">
+    </div>
+    <!-- 新增颜色按钮 -->
+    <button id="addColorBtn" class="text-sm text-primary hover:text-secondary transition-colors">
+        <i class="fas fa-plus mr-1">/</i>新增颜色
+    </button>
+    <!-- 标注开关区域 -->
+    </div>
+    <div class="mb-6 pt-4 border-t border-white/10">
+    <label class="flex items-center justify-between text-sm text-white/80">
+      <span>显示区县名+NDVI值</span>
+      <input type="checkbox" id="labelSwitch" checked class="w-5 h-5 accent-primary rounded">
+    </label>
+    </div>
+
+    <!-- 应用按钮 -->
+    <button id="applyParamsBtn" class="w-full py-2 bg-primary rounded-lg hover:bg-secondary transition-colors font-medium">
+    应用参数
+    </button>
+    </div>
+
+    <!-- 底部时间轴进度条 -->
+    <div id="timelineContainer" class="fixed glass-dark bottom-10 left-20 right-20 rounded-2xl px-10 py-4 z-30">
+        <div class="relative">
+            <div class="progress-track w-full"></div>
+            <div id="timelineSlider" class="absolute top-1/2 left-0 transform -translate-y-1/2 -translate-x-1/2 z-10">
+                <div class="progress-thumb"></div>
+            </div>
+            <!-- 时间标记将通过JavaScript动态生成 -->
+            <div id="timelineMarkers" class="absolute mt-2 top-0 left-0 right-0 h-full"></div>
+        </div>
+    </div>
+
+<script>
+// 全局变量
+let currentYear = 2000;
+let selectedDistrict = null;
+let currentLayers = {};
+let transitionInProgress = false;
+let globalNDVIChart = null;
+let districtNDVIChart = null;
+// 全局变量区新增
+let isSimplifiedMode = true; // 默认精简显示
+let solidFillLayers = {}; // 格式：{兰考县: L.GeoJSON, 尉氏县: L.GeoJSON, ...}
+
+// 数据
+const ndviData = [
+    { district: "兰考县", data: [0.2924, 0.3188, 0.2215, 0.2420, 0.2594, 0.3234, 0.2656, 0.2432, 0.3249, 0.2437, 0.2580] },
+    { district: "尉氏县", data: [0.2507, 0.3065, 0.2366, 0.2349, 0.3068, 0.2603, 0.2597, 0.2501, 0.3519, 0.2607, 0.3277] },
+    { district: "杞县", data: [0.3351, 0.3237, 0.2362, 0.2320, 0.2597, 0.3616, 0.2609, 0.2435, 0.3391, 0.2657, 0.2611] },
+    { district: "祥符区", data: [0.2656, 0.2950, 0.2330, 0.2434, 0.2715, 0.2819, 0.2496, 0.2362, 0.3157, 0.2466, 0.2666] },
+    { district: "禹王台区", data: [0.2357, 0.2508, 0.2290, 0.2386, 0.2583, 0.2421, 0.2377, 0.2240, 0.2531, 0.2175, 0.2466] },
+    { district: "通许县", data: [0.3230, 0.3215, 0.2359, 0.2318, 0.2701, 0.3554, 0.2599, 0.2588, 0.3429, 0.2676, 0.2813] },
+    { district: "顺河回族区", data: [0.2370, 0.2641, 0.2245, 0.2364, 0.2498, 0.2424, 0.2402, 0.2294, 0.2950, 0.2286, 0.2547] },
+    { district: "鼓楼区", data: [0.2183, 0.2356, 0.2154, 0.2223, 0.2466, 0.2265, 0.2142, 0.2162, 0.2382, 0.2137, 0.2364] },
+    { district: "龙亭区", data: [0.2213, 0.2409, 0.2195, 0.2231, 0.2478, 0.2327, 0.2331, 0.2266, 0.2571, 0.2201, 0.2436] }
+];
+
+const years = Array.from({length: 11}, (_, i) => 2000 + i);
+const colors = [
+    '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316',
+    '#14b8a6', '#f43f5e', '#6366f1', '#84cc16', '#f59e0b'
+];
+
+// 从白色到绿色的过渡颜色
+let tiffVisParams = {
+    min: 0.2,
+    max: 0.5,
+    palette: ['#ffffff', '#00ff00'] // 白→绿渐变，可扩展多色（如 ['#fff','#88ff88','#00ff00']）
+};
+
+let fillVisParams = {
+    min: 0.2,
+    max: 0.5,
+    gamma: 1.2,                // 对比度校正（1.0无校正，>1增强暗部，<1增强亮部）
+    palette: [                 // 自定义调色板（至少2个颜色，支持RGB/十六进制）
+        'rgb(230, 255, 237)',  // 浅绿（低NDVI）
+        'rgb(113, 211, 158)',  // 中绿
+        'rgb(4, 120, 87)'      // 深绿（高NDVI）
+    ],
+    opacity: 1.0               // 填充层整体不透明度
+};
+
+
+// 区县边界数据
+const boundsDict = {
+    '兰考县': [[34.744958, 114.686933], [35.025608, 115.261211]],
+    '尉氏县': [[34.195708, 113.871252], [34.618826, 114.437401]],
+    '杞县': [[34.224362, 114.603486], [34.763910, 114.931119]],
+    '祥符区': [[34.509519, 114.140056], [34.923018, 114.728261]],
+    '禹王台区': [[34.701852, 114.316386], [34.785142, 114.443284]],
+    '通许县': [[34.261085, 114.303372], [34.592257, 114.645476]],
+    '顺河回族区': [[34.758807, 114.349912], [34.857390, 114.500633]],
+    '鼓楼区': [[34.678461, 114.245458], [34.801400, 114.363040]],
+    '龙亭区': [[34.702504, 114.111291], [34.940690, 114.428343]]
+};
+
+// 初始化地图
+const map = L.map('map', { 
+    zoomControl: false ,
+    doubleClickZoom: false
+}).setView([34.5, 114.5], 9);
+
+// 全局变量（所有函数外）
+let districtLabels = L.layerGroup(); // 初始不添加到地图
+let showLabel = true; // 默认显示
+let isLabelsAdded = false; // 标记图层组是否已挂载到地图
+
+map.createPane('vectorPane');   // 矢量边界专属（置顶）
+map.createPane('contentPane');  // 填充层+TIFF层专属（下层）
+map.getPane('vectorPane').style.zIndex = 600;  // 更高，确保置顶
+map.getPane('contentPane').style.zIndex = 500; // 更低，不会覆盖边界
+
+
+// 地图样式
+const city_style = {
+    color: 'rgb(0,255,0)',
+    weight: 5,
+    opacity: 1,
+    fillColor: '#000000',
+    fillOpacity: 0
+};
+
+const county_style = {
+    color: '#000000',
+    dashArray: '3,5',
+    weight: 2,
+    opacity: 1,
+    fillColor: '#FFFFFF',
+    fillOpacity: 0
+};
+
+// 添加GeoJSON边界
+function addGeojsonToMap(geojson, style, func = null) {
+    fetch(geojson)
+        .then(response => response.json())
+        .then(geojsonData => {
+            L.geoJSON(geojsonData, {
+                style: style,
+                onEachFeature: func,
+                zIndex:1000,
+                pane:'vectorPane'
+            }).addTo(map);
+        })
+        .catch(error => console.error('加载GeoJSON失败：', error));
+}
+
+// 添加区县边界交互
+function onEachFeature(feature, layer) {
+    if (feature.properties.name) {
+        layer.bindPopup(feature.properties.name);
+        
+        // 鼠标悬停效果
+        layer.on('mouseover', function() {
+            // 获取图层对应的 DOM 元素（Leaflet 矢量图层的 SVG 元素）
+            const domEl = this.getElement();
+            if (domEl) {
+                // 1. 保留轻微的边框高亮（可选，增强辨识度）
+                this.setStyle({
+                    weight: 3,
+                    color: '#10b981',
+                    fillOpacity: 0.1 // 降低填充透明度，突出缩放效果
+                });
+                // 2. 设置缩放 + 阴影（核心）
+                domEl.style.transition = 'all 0.3s ease'; // 顺滑过渡
+                domEl.style.transform = 'scale(1.03)'; // 轻微放大（1.03 倍，可调整）
+                domEl.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)'; // 绿色阴影
+                domEl.style.transformOrigin = 'center center'; // 以图层中心缩放（关键）
+                domEl.style.zIndex = '100'; // 放大后置顶，避免被其他图层遮挡
+            }
+           
+        });
+
+        // 鼠标离开恢复原状
+        layer.on('mouseout', function() {
+            // 获取图层 DOM 元素
+            const domEl = this.getElement();
+            if (domEl) {
+                // 1. 恢复矢量样式
+                this.setStyle(county_style);
+                // 2. 移除缩放 + 阴影
+                domEl.style.transform = 'scale(1)';
+                domEl.style.boxShadow = 'none';
+                domEl.style.zIndex = '1';
+            }
+        });
+        
+        // 双击选中区县
+        layer.on('dblclick', function() {
+            const districtName = feature.properties.name;
+            selectDistrict(districtName);
+        });
+    }
+}
+
+// 添加边界
+addGeojsonToMap('开封市.geojson', city_style);
+Object.keys(boundsDict).forEach(district => {
+    addGeojsonToMap(`./开封市_二级区划/${district}.geojson`, county_style,onEachFeature);
+});
+
+// 新增：初始化所有区县的填充图层（默认透明，一直保留）
+async function initSolidFillLayers(visParams = fillVisParams) {
+    const districtNames = Object.keys(boundsDict);
+    districtNames.forEach(district => {
+        fetch(`./开封市_二级区划/${district}.geojson`)
+            .then(response => response.json())
+            .then(geojsonData => {
+                const fillLayer = L.geoJSON(geojsonData, {
+                    style: {
+                        color: 'transparent', // 隐藏填充层边框
+                        weight: 0,
+                        fillColor: '#ffffff', // 初始颜色（透明后无意义）
+                        fillOpacity: 0,       // 默认全透明
+                        opacity: visParams.opacity // 整体不透明度
+                    },
+                    pane: 'contentPane', // 挂载到contentPane（下层，不覆盖边界）
+                    zIndex: 100
+                }).addTo(map);
+                // 存入全局容器
+                solidFillLayers[district] = fillLayer;
+            });
+    });
+}
+
+// 新增：NDVI值转浅绿到深绿的RGB色（适配0.2~0.5的NDVI范围）
+function ndviToColor(ndviValue, visParams) {
+    const { min, max, gamma, palette } = visParams;
+    
+    // 1. 裁剪NDVI值到[min, max]范围（防止越界）
+    const clampedNDVI = Math.max(min, Math.min(max, ndviValue));
+    
+    // 2. 归一化到0~1区间
+    let normValue = (clampedNDVI - min) / (max - min);
+    
+    // 3. Gamma对比度校正（核心）
+    normValue = Math.pow(normValue, gamma);
+    // 确保校正后仍在0~1范围内
+    normValue = Math.max(0, Math.min(1, normValue));
+    
+    // 4. 调色板线性插值（支持任意长度的调色板）
+    const paletteLen = palette.length;
+    if (paletteLen === 1) return palette[0]; // 单颜色直接返回
+    
+    // 计算在调色板中的位置
+    const colorIndex = normValue * (paletteLen - 1);
+    const floorIndex = Math.floor(colorIndex); // 左颜色索引
+    const ceilIndex = Math.ceil(colorIndex);   // 右颜色索引
+    const mixRatio = colorIndex - floorIndex;  // 插值比例（0~1）
+    
+    // 解析左右颜色为RGB数组（兼容十六进制/RGB字符串）
+    const colorLeft = parseColorToRGB(palette[floorIndex]);
+    const colorRight = parseColorToRGB(palette[ceilIndex]);
+    
+    // 线性插值计算最终RGB
+    const r = Math.round(colorLeft.r + mixRatio * (colorRight.r - colorLeft.r));
+    const g = Math.round(colorLeft.g + mixRatio * (colorRight.g - colorLeft.g));
+    const b = Math.round(colorLeft.b + mixRatio * (colorRight.b - colorLeft.b));
+    
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
+function parseColorToRGB(color) {
+    // 处理十六进制（#fff 或 #ffffff）
+    if (color.startsWith('#')) {
+        const hex = color.slice(1).padEnd(6, '0');
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+        return { r, g, b };
+    }
+    // 处理RGB字符串（rgb(x,x,x)）
+    if (color.startsWith('rgb')) {
+        const match = color.match(/\d+/g);
+        return {
+            r: parseInt(match[0]),
+            g: parseInt(match[1]),
+            b: parseInt(match[2])
+        };
+    }
+    // 默认返回黑色（容错）
+    return { r: 0, g: 0, b: 0 };
+}
+
+// 新增：根据年份/模式更新填充色（透明/NDVI颜色）
+function updateSolidFillStyle(year, visParams = fillVisParams) {
+    const yearIndex = year - 2000;
+    // 确定要更新的区县（选中单个/全部）
+    const targetDistricts = selectedDistrict ? [selectedDistrict] : Object.keys(boundsDict);
+
+    targetDistricts.forEach(district => {
+        
+        const fillLayer = solidFillLayers[district];
+        if (!fillLayer) return;
+       
+        if (isSimplifiedMode) {
+            // 精简模式：应用NDVI颜色 + visParams
+           
+            const ndviItem = ndviData.find(item => item.district === district);
+            const ndviValue = ndviItem?.data[yearIndex] || visParams.min;
+            // 生成gamma校正+调色板插值后的颜色
+            const fillColor = ndviToColor(ndviValue, visParams);
+            fillLayer.setStyle({
+                fillColor: fillColor,
+                fillOpacity: 1, // 显示颜色
+                opacity: visParams.opacity // 应用不透明度
+            });
+        } else {
+           
+            // 详细模式：改回全透明
+            fillLayer.setStyle({
+                fillOpacity: 0
+            });
+        }
+    });
+}
+
+// 核心：更新标注内容（随年份/选中区县动态变化）
+function updateDistrictLabels(year) {
+  // 开关关闭 → 清空标注+确保图层组已移除
+  if (!showLabel) {
+    districtLabels.clearLayers();
+    if (isLabelsAdded) {
+      map.removeLayer(districtLabels);
+      isLabelsAdded = false;
+    }
+    return;
+  }
+
+  // 开关打开 → 确保图层组已挂载
+  if (!isLabelsAdded) {
+    districtLabels.addTo(map);
+    isLabelsAdded = true;
+  }
+
+  // 清空旧标注
+  districtLabels.clearLayers();
+  const yearIndex = year - 2000;
+  const targetDistricts = selectedDistrict ? [selectedDistrict] : Object.keys(boundsDict);
+  console.log(targetDistricts);
+  // 遍历区县生成标注（原有逻辑不变）
+  targetDistricts.forEach(district => {
+    const districtInfo = boundsDict[district];
+    const [minLat, minLng] = districtInfo[0];
+    const [maxLat, maxLng] = districtInfo[1];
+    const centerLat = (minLat + maxLat) / 2;
+    const centerLng = (minLng + maxLng) / 2;
+    const center = [centerLat, centerLng];
+
+    const ndviItem = ndviData.find(item => item.district === district);
+    const ndviValue = ndviItem?.data[yearIndex] || 0;
+
+    const labelHtml = `
+      <div class="glass-dark px-3 py-2 rounded-lg text-sm text-center shadow-lg border border-primary/20 
+                  bg-opacity-90 backdrop-blur-sm z-50">
+        <div class="font-bold text-primary">${district}</div>
+        <div class="text-xs text-white/90">NDVI: ${ndviValue.toFixed(4)}</div>
+      </div>
+    `;
+
+    const labelIcon = L.divIcon({
+      html: labelHtml,
+      className: 'district-label',
+      iconSize: [100, 50],
+      iconAnchor: [50, 25]
+    });
+
+    L.marker(center, {
+      icon: labelIcon,
+      pane: 'vectorPane',
+      zIndexOffset: 1000
+    }).addTo(districtLabels);
+  });
+}
+
+
+// 新增 visParams 参数，默认使用全局配置
+async function addTIFFToLeaflet(tiffPath, bounds, year, district, opacity = 1, visParams = tiffVisParams) {
+    try {
+        const response = await fetch(tiffPath);
+        if (!response.ok) throw new Error(`TIFF加载失败: ${tiffPath}`);
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const tiff = await GeoTIFF.fromArrayBuffer(arrayBuffer);
+        const image = await tiff.getImage();
+        const width = image.getWidth();
+        const height = image.getHeight();
+        const ndviArray = await image.readRasters();
+
+        // 创建Canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        const imageData = ctx.createImageData(width, height);
+        const data = imageData.data;
+
+        // ========== 核心改动：基于 visParams 计算颜色 ==========
+        const { min, max, palette } = visParams;
+        // 颜色插值工具函数：把 0~1 的归一值映射到 palette 渐变
+        const getGradientColor = (norm) => {
+            // 只有1个颜色时直接返回
+            if (palette.length === 1) return hexToRgb(palette[0]);
+            // 计算当前归一值落在哪个颜色区间
+            const segment = 1 / (palette.length - 1);
+            const index = Math.min(Math.floor(norm / segment), palette.length - 2);
+            const localNorm = (norm - index * segment) / segment;
+            // 取起始/结束颜色
+            const startRgb = hexToRgb(palette[index]);
+            const endRgb = hexToRgb(palette[index + 1]);
+            // 线性插值计算最终RGB
+            return {
+                r: Math.round(startRgb.r + (endRgb.r - startRgb.r) * localNorm),
+                g: Math.round(startRgb.g + (endRgb.g - startRgb.g) * localNorm),
+                b: Math.round(startRgb.b + (endRgb.b - startRgb.b) * localNorm)
+            };
+        };
+
+        // 遍历像素计算颜色
+        for (let i = 0; i < ndviArray[0].length; i++) {
+            const val = ndviArray[0][i];
+            let r = 255, g = 255, b = 255, a = 0;
+
+            if (val >= min && val <= max) {
+                // 归一化到 0~1
+                const norm = Math.min((val - min) / (max - min), 1);
+                // 从渐变板取颜色
+                const gradientRgb = getGradientColor(norm);
+                r = gradientRgb.r;
+                g = gradientRgb.g;
+                b = gradientRgb.b;
+                a = 255;
+            }
+
+            data[i * 4] = r;
+            data[i * 4 + 1] = g;
+            data[i * 4 + 2] = b;
+            data[i * 4 + 3] = a * opacity;
+        }
+        ctx.putImageData(imageData, 0, 0);
+        // ========== 颜色计算结束 ==========
+
+        // 后续图层添加逻辑不变...
+        const tiffLayer = L.imageOverlay(canvas.toDataURL(), bounds, {
+            className: 'leaflet-img-layer',
+            zIndex:100,
+            pane:'contentPane'
+        });
+        tiffLayer.addTo(map);
+
+        if (!currentLayers[year]) {
+            currentLayers[year] = {};
+        }
+        currentLayers[year][district] = tiffLayer;
+
+        return tiffLayer;
+
+    } catch (error) {
+        console.error('TIFF处理错误:', error);
+        throw error;
+    }
+}
+
+// 新增：16进制颜色转RGB的工具函数（配合渐变计算）
+function hexToRgb(hex) {
+    // 处理简写（如 #fff → #ffffff）
+    const fullHex = hex.length === 4 ? 
+        '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3] : 
+        hex;
+    // 解析RGB
+    const r = parseInt(fullHex.slice(1, 3), 16);
+    const g = parseInt(fullHex.slice(3, 5), 16);
+    const b = parseInt(fullHex.slice(5, 7), 16);
+    return { r, g, b };
+}
+
+// 新增：清空所有TIFF/纯色填充图层（保留矢量边界）
+function clearAllContentLayers() {
+    currentLayers = {};
+    
+    map.eachLayer(layer => {
+        // 保留：有boundary-layer类名的图层
+        if (layer.options?.className === 'boundary-layer') {
+            console.log('保留边界图层:', layer);
+            return;
+        }
+        // 移除：所有其他图层
+        map.removeLayer(layer);
+    });
+}
+
+// 加载指定年份的所有区县影像（优化后）
+async function loadYearImages(year, transition = false) {
+    if (transitionInProgress) return;
+    transitionInProgress = true;
+    const yearIndex = year - 2000;
+    const yearDisplayEl = document.getElementById('currentYearDisplay');
+    if (yearDisplayEl) yearDisplayEl.textContent = `${year}年`;
+
+    // ========== 仅移除TIFF图层（填充层保留，只改样式） ==========
+    Object.values(currentLayers).forEach(yearLayers => {
+        Object.values(yearLayers).forEach(layer => {
+            if (map.hasLayer(layer)) map.removeLayer(layer);
+        });
+    });
+
+    const delay = transition ? 100 : 0;
+    await new Promise(resolve => setTimeout(resolve, delay));
+
+    try {
+        const newLayers = {};
+
+        // 第一步：更新填充层样式（精简→显色，详细→透明）
+        updateSolidFillStyle(year);
+
+        // 第二步：详细模式下加载TIFF（精简模式不加载）
+        if (!isSimplifiedMode) {
+            if (selectedDistrict) {
+                const district = selectedDistrict;
+                const tiffPath = `./District_NDVI/${district}/${district}_kaifeng_ndvi_${year}.tif`;
+                const bounds = boundsDict[district];
+                if (bounds) {
+                    const layer = await addTIFFToLeaflet(tiffPath, bounds, year, district, 1);
+                    newLayers[district] = layer;
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                }
+            } else {
+                const layerPromises = Object.keys(boundsDict).map(district => {
+                    const tiffPath = `./District_NDVI/${district}/${district}_kaifeng_ndvi_${year}.tif`;
+                    const bounds = boundsDict[district];
+                    if (!bounds) return Promise.resolve(null);
+                    return addTIFFToLeaflet(tiffPath, bounds, year, district, 1)
+                        .then(layer => {
+                            newLayers[district] = layer;
+                            return layer;
+                        });
+                });
+                await Promise.all(layerPromises);
+            }
+        }
+
+        currentLayers[year] = newLayers;
+    } catch (error) {
+        console.error('加载影像失败:', error);
+    } finally {
+        transitionInProgress = false;
+    }
+
+    updateVisualization();
+}
+
+// 初始化时间轴（重构后）
+function initTimeline() {
+    const slider = document.getElementById('timelineSlider');
+    const track = document.querySelector('.progress-track');
+    const markersContainer = document.getElementById('timelineMarkers');
+    const yearDisplayEl = document.getElementById('currentYearDisplay'); // 容错处理
+    
+    // 设置滑块初始位置
+    updateSliderPosition(currentYear);
+    // 初始化年份显示（容错）
+    if (yearDisplayEl) yearDisplayEl.textContent = `${currentYear}年`;
+    
+    // 创建时间标记
+    years.forEach((year, index) => {
+        const marker = document.createElement('div');
+        marker.className = 'progress-marker';
+        marker.style.left = `${(index / (years.length - 1)) * 100}%`;
+        
+        const label = document.createElement('div');
+        label.className = 'progress-label';
+        label.textContent = year + '年';
+        marker.appendChild(label);
+        
+        markersContainer.appendChild(marker);
+    });
+    
+    // 拖动状态变量
+    let isDragging = false;
+    
+    // 计算鼠标位置对应的滑块百分比（核心工具函数）
+    const getPositionPercent = (e) => {
+        const trackRect = track.getBoundingClientRect();
+        let position = (e.clientX - trackRect.left) / trackRect.width;
+        return Math.max(0, Math.min(1, position)); // 限制0~1
+    };
+    
+    // 计算百分比对应的最近年份（卡位逻辑）
+    const getNearestYear = (percent) => {
+        const yearIndex = Math.round(percent * (years.length - 1));
+        return years[yearIndex];
+    };
+    
+    // 开始拖动：仅标记状态
+    const startDrag = (e) => {
+        e.preventDefault(); // 防止默认行为
+        isDragging = true;
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', endDrag);
+    };
+    
+    // 拖动中：仅更新滑块位置（不切换年份，跟随鼠标）
+    const drag = (e) => {
+        if (!isDragging) return;
+        const positionPercent = getPositionPercent(e);
+        // 实时更新滑块位置（不加载影像）
+        slider.style.left = `${positionPercent * 100}%`;
+    };
+    
+    // 结束拖动：卡位到最近年份 + 加载影像
+    const endDrag = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        // 获取最终位置的最近年份
+        const finalPercent = parseFloat(slider.style.left) / 100;
+        const newYear = getNearestYear(finalPercent);
+        
+        // 卡位到目标年份
+        if (newYear !== currentYear) {
+            currentYear = newYear;
+            updateSliderPosition(currentYear); // 滑块精准卡位到节点
+            if (yearDisplayEl) yearDisplayEl.textContent = `${currentYear}年`;
+            loadYearImages(currentYear); // 加载对应年份影像
+            if (showLabel) {
+            updateDistrictLabels(newYear);
+        }
+        }
+
+        console.log(`拖动结束，卡位到${newYear}年`);
+        // 移除事件监听
+        document.removeEventListener('mousemove', drag);
+        document.removeEventListener('mouseup', endDrag);
+    };
+    
+    // 绑定拖动事件
+    slider.addEventListener('mousedown', startDrag);
+    
+    // 点击轨道：直接卡位到点击位置的最近年份
+    track.addEventListener('click', (e) => {
+        const positionPercent = getPositionPercent(e);
+        const newYear = getNearestYear(positionPercent);
+        
+        if (newYear !== currentYear) {
+            currentYear = newYear;
+            updateSliderPosition(currentYear);
+            if (yearDisplayEl) yearDisplayEl.textContent = `${currentYear}年`;
+            loadYearImages(currentYear, true);
+        }
+    });
+}
+
+// 更新滑块位置
+function updateSliderPosition(year) {
+    const yearIndex = year - 2000;
+    const position = (yearIndex / (years.length - 1)) * 100;
+    document.getElementById('timelineSlider').style.left = `${position}%`;
+}
+
+// 选择区县
+function selectDistrict(districtName) {
+    selectedDistrict = districtName;
+    
+    // 更新UI状态
+    document.getElementById('globalViewState').classList.add('hidden');
+    document.getElementById('districtViewState').classList.remove('hidden');
+    document.getElementById('selectedDistrictName').textContent = districtName;
+    
+    // 隐藏时间轴
+    document.getElementById('timelineContainer').classList.add('hidden');
+    
+    // 加载选中区县的当前年份影像
+    loadYearImages(currentYear);
+    
+    // 更新可视化
+    updateVisualization();
+}
+
+// 重置视图
+function resetView() {
+    selectedDistrict = null;
+    
+    // 更新UI状态
+    document.getElementById('globalViewState').classList.remove('hidden');
+    document.getElementById('districtViewState').classList.add('hidden');
+    
+    // 显示时间轴
+    document.getElementById('timelineContainer').classList.remove('hidden');
+    
+    // 加载所有区县的当前年份影像
+    loadYearImages(currentYear);
+    
+    // 重置地图视图
+    map.setView([34.70, 114.5], 9);
+    
+    // 更新可视化
+    updateVisualization();
+}
+
+// 更新数据可视化
+function updateVisualization() {
+    if (selectedDistrict) {
+        // 区县视图 - 显示时间序列折线图
+        updateDistrictVisualization();
+    } else {
+        // 全局视图 - 显示当前年份各区县对比
+        updateGlobalVisualization();
+    }
+}
+
+// 更新全局视图可视化
+function updateGlobalVisualization() {
+    const yearIndex = currentYear - 2000;
+    
+    // 准备数据
+    const currentData = ndviData.map(item => ({
+        district: item.district,
+        value: item.data[yearIndex]
+    })).sort((a, b) => b.value - a.value);
+    
+    // 更新表格
+    const tableBody = document.getElementById('dataTableBody');
+    tableBody.innerHTML = '';
+    
+    currentData.forEach((item, index) => {
+        const row = document.createElement('tr');
+        row.className = 'border-b border-white/5 hover:bg-white/5 transition-colors';
+        row.innerHTML = `
+            <td class="py-3 px-2">${item.district}</td>
+            <td class="py-3 px-2 text-right font-medium">${item.value.toFixed(4)}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+    
+    // 更新统计信息
+    const maxItem = currentData[0];
+    const minItem = currentData[currentData.length - 1];
+    
+    document.getElementById('maxNDVIValue').textContent = maxItem.value.toFixed(4);
+    document.getElementById('maxNDVIDistrict').textContent = maxItem.district;
+    document.getElementById('minNDVIValue').textContent = minItem.value.toFixed(4);
+    document.getElementById('minNDVIDistrict').textContent = minItem.district;
+    
+    // 更新图表
+    updateGlobalCharts(currentData);
+}
+
+// 更新区县视图可视化
+function updateDistrictVisualization() {
+    const districtData = ndviData.find(item => item.district === selectedDistrict);
+    
+    if (!districtData) return;
+    
+    // 更新表格
+    const tableBody = document.getElementById('dataTableBody');
+    tableBody.innerHTML = '';
+    
+    years.forEach((year, index) => {
+        const row = document.createElement('tr');
+        row.className = 'border-b border-white/5 hover:bg-white/5 transition-colors';
+        row.innerHTML = `
+            <td class="py-3 px-2">${year}年</td>
+            <td class="py-3 px-2 text-right font-medium">${districtData.data[index].toFixed(4)}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+    
+    // 更新统计信息
+    const maxValue = Math.max(...districtData.data);
+    const minValue = Math.min(...districtData.data);
+    const maxYear = 2000 + districtData.data.indexOf(maxValue);
+    const minYear = 2000 + districtData.data.indexOf(minValue);
+    
+    document.getElementById('maxNDVIValue').textContent = maxValue.toFixed(4);
+    document.getElementById('maxNDVIDistrict').textContent = `${maxYear}年`;
+    document.getElementById('minNDVIValue').textContent = minValue.toFixed(4);
+    document.getElementById('minNDVIDistrict').textContent = `${minYear}年`;
+    
+    // 更新图表
+    updateDistrictCharts(districtData);
+}
+
+// 更新全局图表
+function updateGlobalCharts(data) {
+    // 柱状图
+    const barCtx = document.getElementById('barChart').getContext('2d');
+    
+    if (globalNDVIChart) {
+        globalNDVIChart.destroy();
+    }
+    
+    globalNDVIChart = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: data.map(item => item.district),
+            datasets: [{
+                label: 'NDVI值',
+                data: data.map(item => item.value),
+                backgroundColor: colors.slice(0, data.length),
+                borderColor: colors.slice(0, data.length),
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    borderColor: 'rgba(16, 185, 129, 0.5)',
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: 0.2,
+                    max: 0.4,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: 'rgba(255, 255, 255, 0.7)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: 'rgba(255, 255, 255, 0.7)'
+                    }
+                }
+            },
+            animation: {
+                duration: 500,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+    
+    // 折线图（所有区县的时间序列）
+    const lineCtx = document.getElementById('lineChart').getContext('2d');
+    
+    const datasets = ndviData.map((item, index) => ({
+        label: item.district,
+        data: item.data,
+        borderColor: colors[index],
+        backgroundColor: colors[index] + '20',
+        borderWidth: 2,
+        fill: false,
+        tension: 0.4,
+        pointRadius: 3,
+        pointHoverRadius: 5
+    }));
+    
+    if (districtNDVIChart) {
+        districtNDVIChart.destroy();
+    }
+    
+    districtNDVIChart = new Chart(lineCtx, {
+        type: 'line',
+        data: {
+            labels: years,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: 'rgba(255, 255, 255, 0.7)',
+                        boxWidth: 12,
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    borderColor: 'rgba(16, 185, 129, 0.5)',
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: 0.2,
+                    max: 0.4,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: 'rgba(255, 255, 255, 0.7)'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: 'rgba(255, 255, 255, 0.7)'
+                    }
+                }
+            },
+            animation: {
+                duration: 500,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+}
+
+// 更新区县图表
+function updateDistrictCharts(districtData) {
+    // 折线图（单区县时间序列）
+    const lineCtx = document.getElementById('lineChart').getContext('2d');
+    
+    if (districtNDVIChart) {
+        districtNDVIChart.destroy();
+    }
+    
+    districtNDVIChart = new Chart(lineCtx, {
+        type: 'line',
+        data: {
+            labels: years,
+            datasets: [{
+                label: districtData.district,
+                data: districtData.data,
+                borderColor: '#10b981',
+                backgroundColor: '#10b98120',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: '#10b981',
+                pointBorderColor: 'white',
+                pointBorderWidth: 2,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    borderColor: 'rgba(16, 185, 129, 0.5)',
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: 0.2,
+                    max: 0.4,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: 'rgba(255, 255, 255, 0.7)'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: 'rgba(255, 255, 255, 0.7)'
+                    }
+                }
+            },
+            animation: {
+                duration: 500,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+    
+    // 柱状图（单区县时间序列）
+    const barCtx = document.getElementById('barChart').getContext('2d');
+    
+    if (globalNDVIChart) {
+        globalNDVIChart.destroy();
+    }
+    
+    globalNDVIChart = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: years,
+            datasets: [{
+                label: 'NDVI值',
+                data: districtData.data,
+                backgroundColor: '#10b981',
+                borderColor: '#059669',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    borderColor: 'rgba(16, 185, 129, 0.5)',
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: 0.2,
+                    max: 0.4,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: 'rgba(255, 255, 255, 0.7)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: 'rgba(255, 255, 255, 0.7)'
+                    }
+                }
+            },
+            animation: {
+                duration: 500,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+}
+
+// 视图切换
+function setupViewSwitching() {
+    const tableViewBtn = document.getElementById('tableViewBtn');
+    const lineChartBtn = document.getElementById('lineChartBtn');
+    const barChartBtn = document.getElementById('barChartBtn');
+    
+    const tableView = document.getElementById('tableView');
+    const lineChartView = document.getElementById('lineChartView');
+    const barChartView = document.getElementById('barChartView');
+    
+    tableViewBtn.addEventListener('click', () => {
+        tableView.classList.remove('hidden');
+        lineChartView.classList.add('hidden');
+        barChartView.classList.add('hidden');
+        
+        tableViewBtn.classList.remove('bg-gray-700/50');
+        tableViewBtn.classList.add('bg-primary');
+        lineChartBtn.classList.remove('bg-primary');
+        lineChartBtn.classList.add('bg-gray-700/50');
+        barChartBtn.classList.remove('bg-primary');
+        barChartBtn.classList.add('bg-gray-700/50');
+    });
+    
+    lineChartBtn.addEventListener('click', () => {
+        tableView.classList.add('hidden');
+        lineChartView.classList.remove('hidden');
+        barChartView.classList.add('hidden');
+        
+        tableViewBtn.classList.remove('bg-primary');
+        tableViewBtn.classList.add('bg-gray-700/50');
+        lineChartBtn.classList.remove('bg-gray-700/50');
+        lineChartBtn.classList.add('bg-primary');
+        barChartBtn.classList.remove('bg-primary');
+        barChartBtn.classList.add('bg-gray-700/50');
+    });
+    
+    barChartBtn.addEventListener('click', () => {
+        tableView.classList.add('hidden');
+        lineChartView.classList.add('hidden');
+        barChartView.classList.remove('hidden');
+        
+        tableViewBtn.classList.remove('bg-primary');
+        tableViewBtn.classList.add('bg-gray-700/50');
+        lineChartBtn.classList.remove('bg-primary');
+        lineChartBtn.classList.add('bg-gray-700/50');
+        barChartBtn.classList.remove('bg-gray-700/50');
+        barChartBtn.classList.add('bg-primary');
+    });
+}
+
+// 面板控制
+function setupPanelControls() {
+    const togglePanelBtn = document.getElementById('togglePanelBtn');
+    const closePanelBtn = document.getElementById('closePanelBtn');
+    const dataPanel = document.getElementById('dataPanel');
+    let panelOpen = true;
+    
+    togglePanelBtn.addEventListener('click', () => {
+        panelOpen = !panelOpen;
+        if (panelOpen) {
+            dataPanel.classList.remove('translate-x-full');
+            dataPanel.classList.add('translate-x-0');
+            togglePanelBtn.innerHTML = '<i class="fas fa-chart-bar"></i><span>数据面板</span>';
+        } else {
+            dataPanel.classList.remove('translate-x-0');
+            dataPanel.classList.add('translate-x-full');
+            togglePanelBtn.innerHTML = '<i class="fas fa-chart-bar"></i><span>显示面板</span>';
+        }
+    });
+    
+    closePanelBtn.addEventListener('click', () => {
+        panelOpen = false;
+        dataPanel.classList.remove('translate-x-0');
+        dataPanel.classList.add('translate-x-full');
+        togglePanelBtn.innerHTML = '<i class="fas fa-chart-bar"></i><span>显示面板</span>';
+    });
+    
+    // 重置视图按钮
+    document.getElementById('resetViewBtn').addEventListener('click', resetView);
+    
+    // 参数设置按钮
+    
+}
+
+function setupSimplifiedToggle() {
+    const toggleBtn = document.getElementById('toggleSimplifiedBtn');
+    toggleBtn.addEventListener('click', () => {
+        // 切换模式
+        isSimplifiedMode = !isSimplifiedMode;
+        
+        // 更新按钮文字/样式
+        if (isSimplifiedMode) {
+            toggleBtn.innerHTML = '<i class="fas fa-palette"></i><span>精简显示</span>';
+            toggleBtn.classList.add('bg-primary/20');
+            toggleBtn.classList.remove('bg-gray-700/50');
+        } else {
+            toggleBtn.innerHTML = '<i class="fas fa-image"></i><span>详细显示</span>';
+            toggleBtn.classList.remove('bg-primary/20');
+            toggleBtn.classList.add('bg-gray-700/50');
+        }
+        
+        // ========== 核心：仅更新填充样式，不删任何图层 ==========
+        updateSolidFillStyle(currentYear);
+        // 重新加载TIFF（详细模式）/ 仅更新样式（精简模式）
+        loadYearImages(currentYear);
+    });
+}
+
+function setupSettingPanel() {
+    const settingBtn = document.getElementById('settingBtn');
+    const settingPanel = document.getElementById('settingPanel');
+    const closeSettingBtn = document.getElementById('closeSettingBtn');
+    const opacityVal = document.getElementById('opacityVal');
+    const opacityText = document.getElementById('opacityText');
+    const paletteContainer = document.getElementById('paletteInputsContainer');
+    const addColorBtn = document.getElementById('addColorBtn');
+     const labelSwitch = document.getElementById('labelSwitch'); // 标注开关
+    
+    // 点击添加颜色按钮：添加新的颜色输入框
+    addColorBtn.addEventListener('click', () => {
+    const newInput = document.createElement('input');
+    newInput.type = 'text';
+    newInput.className = 'palette-input w-full bg-gray-800 rounded px-2 py-1 text-white border border-gray-700';
+    newInput.placeholder = '例：#ffffff 或 rgb(255,255,255)';
+    paletteContainer.appendChild(newInput);
+  });
+
+  // 1. 点击设置按钮：显示面板
+  settingBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    console.log('点击设置按钮'); 
+    // 1. 获取设置按钮的屏幕位置
+    const btnRect = settingBtn.getBoundingClientRect();
+    const panelElm = document.getElementById('settingPanel');
+    // 面板宽度
+    const panelWidth = 384;
+    const margin = 8;
+
+    // 2. 计算面板初始位置：按钮下方+左对齐按钮
+    let panelLeft = btnRect.left + btnRect.width - panelWidth;
+    let panelTop = btnRect.bottom + margin;
+
+    // 4. 应用位置 + 显示面板
+    settingPanel.style.left = `${panelLeft}px`;
+    settingPanel.style.top = `${panelTop}px`;
+    settingPanel.classList.remove('hidden');
+    labelSwitch.checked = showLabel;
+    syncParamsToInput();
+    });
+
+  // 2. 点击关闭按钮/点击面板外：隐藏面板
+  closeSettingBtn.addEventListener('click', () => {
+    settingPanel.classList.add('hidden');
+  });
+  // 可选：点击面板外区域关闭
+  document.addEventListener('click', (e) => {
+    if (!settingPanel.contains(e.target) && e.target !== settingBtn) {
+      settingPanel.classList.add('hidden');
+    }
+  });
+ labelSwitch.addEventListener('change', (e) => {
+  showLabel = e.target.checked;
+  if (showLabel) {
+    // 显示：如果图层组未挂载，则添加到地图，并重绘标注
+    if (!isLabelsAdded) {
+      districtLabels.addTo(map);
+      isLabelsAdded = true;
+    }
+    updateDistrictLabels(currentYear); // 确保标注内容最新
+  } else {
+    // 隐藏：从地图移除图层组，并标记未挂载
+    if (isLabelsAdded) {
+      map.removeLayer(districtLabels);
+      isLabelsAdded = false;
+    }
+    districtLabels.clearLayers(); // 清空旧标注（可选，减少内存占用）
+  }
+});
+  // 4. 不透明度滑块：实时显示百分比
+  opacityVal.addEventListener('input', () => {
+    const val = parseFloat(opacityVal.value);
+    opacityText.textContent = `${Math.round(val * 100)}%`;
+  });
+
+  // 5. 点击「应用按钮」：修改参数并刷新图层
+  document.getElementById('applyParamsBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const layerType = document.getElementById('layerTypeSelect').value;
+    const min = parseFloat(document.getElementById('ndviMin').value);
+    const max = parseFloat(document.getElementById('ndviMax').value);
+    const gamma = parseFloat(document.getElementById('gammaVal').value);
+    const opacity = parseFloat(document.getElementById('opacityVal').value);
+
+    // 核心修改：从多个输入框收集颜色（过滤空值）
+    const paletteInputs = document.querySelectorAll('.palette-input');
+    const palette = Array.from(paletteInputs)
+        .map(input => input.value.trim())
+        .filter(val => val); // 过滤空输入框
+
+    // 校验：调色板至少需要2个颜色（渐变需要）
+    if (palette.length < 2) {
+        alert('调色板至少需要填写2个颜色！');
+        return;
+    }
+    // 校验参数（避免非法值）
+    if (isNaN(min) || isNaN(max) || min >= max) {
+      alert('NDVI最小值必须小于最大值！');
+      return;
+    }
+
+    // 更新对应图层的参数
+    if (layerType === 'fill') {
+      fillVisParams.min = min;
+      fillVisParams.max = max;
+      fillVisParams.gamma = gamma;
+      fillVisParams.opacity = opacity;
+      fillVisParams.palette = palette;
+      // 刷新填充层样式（精简模式）
+      updateSolidFillStyle(currentYear, fillVisParams);
+    } else {
+      tiffVisParams.min = min;
+      tiffVisParams.max = max;
+      tiffVisParams.opacity = opacity;
+      tiffVisParams.palette = palette;
+      // 刷新TIFF图层（详细模式）
+      if (!isSimplifiedMode) {
+        loadYearImages(currentYear);
+      }
+    }
+
+    // 应用后可选择隐藏面板
+    console.log('简易填充颜色',fillVisParams,'图像填充颜色',tiffVisParams)
+    settingPanel.classList.add('hidden');
+  });
+
+  // 辅助函数：同步当前参数到输入框（打开面板时调用）
+  function syncParamsToInput() {
+    const layerType = document.getElementById('layerTypeSelect').value;
+    const params = layerType === 'fill' ? fillVisParams : tiffVisParams;
+    document.getElementById('ndviMin').value = params.min;
+    document.getElementById('ndviMax').value = params.max;
+    document.getElementById('gammaVal').value = params.gamma || 1.0; // TIFF层无gamma，默认1.0
+    document.getElementById('opacityVal').value = params.opacity;
+    document.getElementById('opacityText').textContent = `${Math.round(params.opacity * 100)}%`;
+    // 同步调色板到多个输入框
+    const paletteContainer = document.getElementById('paletteInputsContainer');
+    // 先清空现有输入框
+    paletteContainer.innerHTML = '';
+    // 填充当前palette的颜色到输入框
+    params.palette.forEach(color => {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'palette-input w-full bg-gray-800 rounded px-2 py-1 text-white border border-gray-700';
+        input.value = color;
+        input.placeholder = '例：#ffffff 或 rgb(255,255,255)';
+        paletteContainer.appendChild(input);
+    });
+
+
+
+  }
+}
+
+async function initApp() {
+    initTimeline();
+    setupViewSwitching();
+    setupPanelControls();
+    setupSimplifiedToggle();
+    setupSettingPanel(); // 新增：初始化设置面板
+    await initSolidFillLayers();
+    updateSolidFillStyle(currentYear); // 新增：强制初始化填充颜色
+    updateDistrictLabels(currentYear);
+    loadYearImages(currentYear);
+    updateGlobalVisualization();
+}
+
+// 启动应用
+window.addEventListener('DOMContentLoaded', async () => {
+    await initApp();
+});
+</script>
+</body>
+</html>
