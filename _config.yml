@@ -1,3 +1,4 @@
 title: 我的笔记
-markdown: kramdown
+markdown: jekyll-theme-minimal
 theme: minima  # 可选Jekyll主题，提升渲染样式
+
